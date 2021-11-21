@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/corenlp"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"net/url"
@@ -16,34 +15,48 @@ func main() {
 		OutputFormat: corenlp.FormatJSON,
 	})
 
-	d, _ := c.Annotate("first we came to the tall palm trees")
+	e1 := "I love dogs"
+	e2 := "I really like dogs"
 
-	p := d.Sentences[0].Parse
+	doc, _ := c.Annotate(e1)
+
+	p := doc.Sentences[0].Parse
 
 	dec := tree.NewDecoder()
-	t, _ := dec.Decode(p)
+	tr, _ := dec.Decode(p)
 
-	fmt.Println(t.Leaves())
+	// TODO keep POS Tags
 
-	Insert(t.SubtreeAtPosition([]int{0, 2, 1, 1, 1}), false, "rather")
-	Reorder(t.Children[0], []int{2, 0, 1})
-	Translate([2]*tree.Tree{nil, t.Leaves()[5]}, "big")
+	DropPOSTags(tr)
 
-	fmt.Println(t.Leaves())
+	d := NewCorpus()
+
+	d = append(d, Sample{
+		t: tr,
+		e: e2,
+	})
+
+	Train(d, []string{"really"}, []string{"", "I", "like", "dogs"})
 }
 
 // Insert adds a new child node with the given label
-func Insert(t *tree.Tree, x bool, n string) {
+func Insert(t *tree.Tree, n string) {
 	if n == "" {
 		return
 	}
 
-	c := &tree.Tree{Label: n, Children: nil}
+	if n == "n" {
+		return
+	}
 
-	if x {
-		t.Children = append(t.Children, c)
-	} else {
+	c := &tree.Tree{Label: n[1:], Children: nil}
+
+	if n[:1] == "l" {
 		t.Children = append([]*tree.Tree{c}, t.Children...)
+	}
+
+	if n[:1] == "r" {
+		t.Children = append(t.Children, c)
 	}
 }
 
@@ -67,21 +80,11 @@ func Reorder(t *tree.Tree, p []int) {
 }
 
 // Translate replaces the given leaf's label
-func Translate(t [2]*tree.Tree, s string) {
-	if len(t[1].Children) > 0 {
+func Translate(t *tree.Tree, s string) {
+	if len(t.Children) > 0 {
 		panic("not a leaf")
 	}
 
-	if s != "" {
-		t[1].Label = s
-		return
-	}
-
-	for k, c := range t[0].Children {
-		if c != t[1] {
-			continue
-		}
-
-		t[1].Children = append(t[1].Children[:k], t[1].Children[k+1:]...)
-	}
+	t.Label = s
+	return
 }
