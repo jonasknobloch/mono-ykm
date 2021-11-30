@@ -86,7 +86,7 @@ func sequences(tr *tree.Tree, e2 string, td, nd []string) (sqs []sequence) {
 
 		tt, fm := transformTree(tr, ops)
 
-		if s := TreeSentence(tt); s == e2 {
+		if s := tt.Sentence(); s == e2 {
 			fmt.Printf("%d / %d -> %v %s\n", counter, max, sub, s)
 		}
 
@@ -121,7 +121,8 @@ func NodeOperations(tr *tree.Tree, td, nd []string) (r [][]int, t []string, n []
 }
 
 func transformTree(tr *tree.Tree, ops operations) (*tree.Tree, features) {
-	cp, m := CopyTree(tr)
+	m := make(map[*tree.Tree]*tree.Tree)
+	cp := tr.Copy(m)
 
 	fm := make(map[*tree.Tree]nodeFeature, len(ops))
 
