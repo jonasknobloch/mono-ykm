@@ -5,6 +5,7 @@ import (
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"net/url"
 	"sort"
+	"strings"
 )
 
 func main() {
@@ -15,28 +16,17 @@ func main() {
 		OutputFormat: corenlp.FormatJSON,
 	})
 
-	e1 := "I love dogs"
-	e2 := "I really like dogs"
+	e := "I love dogs"
+	f := "I really like dogs"
 
-	doc, _ := c.Annotate(e1)
+	doc, _ := c.Annotate(e)
 
 	p := doc.Sentences[0].Parse
 
 	dec := tree.NewDecoder()
 	tr, _ := dec.Decode(p)
 
-	// TODO keep POS Tags
-
-	DropPOSTags(tr)
-
-	d := NewCorpus()
-
-	d = append(d, Sample{
-		t: tr,
-		e: e2,
-	})
-
-	Train(d, []string{"really"}, []string{"", "I", "like", "dogs"})
+	NewGraph(tr, strings.Split(f, " "))
 }
 
 // Insert adds a new child node with the given label
