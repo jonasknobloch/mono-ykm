@@ -1,32 +1,24 @@
 package main
 
 import (
-	"github.com/jonasknobloch/jinn/pkg/corenlp"
+	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/tree"
-	"net/url"
 	"sort"
 	"strings"
 )
 
 func main() {
-	u, _ := url.Parse("http://localhost:9000")
+	m := NewModel()
 
-	c, _ := corenlp.NewClient(u, corenlp.Properties{
-		Annotators:   corenlp.Annotators{corenlp.ParserAnnotator},
-		OutputFormat: corenlp.FormatJSON,
-	})
+	m.InitTrees()
+	m.InitWeights()
 
-	e := "I love dogs"
-	f := "I really like dogs"
+	tr := m.trees[702876].Tree
+	f := strings.Split(m.trees[702977].Tree.Sentence(), " ")
 
-	doc, _ := c.Annotate(e)
+	g := NewGraph(tr, f, m)
 
-	p := doc.Sentences[0].Parse
-
-	dec := tree.NewDecoder()
-	tr, _ := dec.Decode(p)
-
-	NewGraph(tr, strings.Split(f, " "))
+	fmt.Println(len(g.nodes))
 }
 
 // Insert adds a new child node with the given label
