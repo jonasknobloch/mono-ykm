@@ -139,7 +139,7 @@ func (m *Model) InitWeights() {
 				// TODO populate n2
 			}
 
-			if _, ok := m.r[a[ReorderingFeature]]; !ok {
+			if _, ok := m.r[a[ReorderingFeature]]; !ok && a[ReorderingFeature] != "" {
 				ops := Reorderings(st, a[ReorderingFeature])
 
 				m.r[a[ReorderingFeature]] = make(map[string]float64, len(ops))
@@ -148,7 +148,7 @@ func (m *Model) InitWeights() {
 				}
 			}
 
-			if _, ok := m.t[a[TranslationFeature]]; !ok {
+			if _, ok := m.t[a[TranslationFeature]]; !ok && a[TranslationFeature] != "" {
 				m.t[a[TranslationFeature]] = make(map[string]float64, 2)
 
 				// TODO populate t
