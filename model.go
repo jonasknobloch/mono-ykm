@@ -103,7 +103,7 @@ func (m *Model) InitTrees() {
 	}
 }
 
-func (m *Model) InitWeights() {
+func (m *Model) InitWeights(nd []string) {
 	for _, mt := range m.trees {
 		mt.Tree.Walk(func(st *tree.Tree) {
 			a, ok := mt.Annotation(st)
@@ -113,7 +113,7 @@ func (m *Model) InitWeights() {
 			}
 
 			if _, ok := m.n1[a[InsertionFeature]]; !ok {
-				ops := Insertions(st, []string{}, a[InsertionFeature])
+				ops := Insertions(st, nd, a[InsertionFeature])
 
 				var cN, cL, cR float64 = 0, 0, 0
 
@@ -135,8 +135,10 @@ func (m *Model) InitWeights() {
 					cL / float64(len(ops)),
 					cR / float64(len(ops)),
 				}
+			}
 
-				// TODO populate n2
+			for _, w := range nd {
+				m.n2[w] = 1 / float64(len(nd))
 			}
 
 			if _, ok := m.r[a[ReorderingFeature]]; !ok && a[ReorderingFeature] != "" {
