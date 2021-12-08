@@ -51,12 +51,11 @@ func (i Insertion) Feature() string {
 func Insertions(t *tree.Tree, d []string, f string) []Operation {
 	ops := make([]Operation, 0)
 
-	// TODO allow insertions at leafs
+	ops = append(ops, NewInsertion(None, "", f))
+
 	if len(t.Children) == 0 {
 		return ops
 	}
-
-	ops = append(ops, NewInsertion(None, "", f))
 
 	for _, w := range d {
 		ops = append(ops, NewInsertion(Left, w, f))
