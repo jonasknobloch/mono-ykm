@@ -4,21 +4,23 @@ import (
 	"github.com/jonasknobloch/jinn/pkg/tree"
 )
 
-type Feature struct {
-	n string
-	r string
-	t string
-}
+type NodeFeature int
+
+const (
+	InsertionFeature NodeFeature = iota
+	ReorderingFeature
+	TranslationFeature
+)
 
 type MetaTree struct {
 	Tree *tree.Tree
-	meta map[*tree.Tree]Feature
+	meta map[*tree.Tree][3]string
 }
 
 func NewMetaTree(t *tree.Tree) *MetaTree {
 	m := &MetaTree{
 		Tree: t,
-		meta: make(map[*tree.Tree]Feature, len(t.Subtrees())),
+		meta: make(map[*tree.Tree][3]string, len(t.Subtrees())),
 	}
 
 	m.CollectFeatures()
@@ -29,13 +31,11 @@ func NewMetaTree(t *tree.Tree) *MetaTree {
 func (mt *MetaTree) CollectFeatures() {
 	var walk func(p, st *tree.Tree)
 	walk = func(p, st *tree.Tree) {
-		var f Feature
-
-		f.n = nFeature(p, st)
-		f.r = rFeature(st)
-		f.t = tFeature(st)
-
-		mt.Annotate(st, f)
+		mt.Annotate(st, [3]string{
+			nFeature(p, st),
+			rFeature(st),
+			tFeature(st),
+		})
 
 		for _, c := range st.Children {
 			walk(st, c)
@@ -45,11 +45,11 @@ func (mt *MetaTree) CollectFeatures() {
 	walk(nil, mt.Tree)
 }
 
-func (mt *MetaTree) Annotate(st *tree.Tree, f Feature) {
-	mt.meta[st] = f
+func (mt *MetaTree) Annotate(st *tree.Tree, a [3]string) {
+	mt.meta[st] = a
 }
 
-func (mt *MetaTree) Annotation(st *tree.Tree) (Feature, bool) {
-	f, ok := mt.meta[st]
-	return f, ok
+func (mt *MetaTree) Annotation(st *tree.Tree) ([3]string, bool) {
+	a, ok := mt.meta[st]
+	return a, ok
 }

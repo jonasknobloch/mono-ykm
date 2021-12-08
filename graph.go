@@ -17,7 +17,7 @@ type Graph struct {
 }
 
 func NewGraph(t *tree.Tree, f []string, m *Model) *Graph {
-	n := &Node{tr: t, f: f, k: 0, l: len(f), nType: MajorNode}
+	n := &Node{tree: t, f: f, k: 0, l: len(f), nType: MajorNode}
 
 	g := &Graph{
 		root:   n,
@@ -88,53 +88,74 @@ func partitionings(n, k int) [][]int {
 func (g *Graph) Expand(n *Node, m *Model) {
 	major := make(map[*tree.Tree]map[string]*Node)
 
-	feature, ok := m.trees2[g.root.tr].Annotation(n.tr)
+	feats, ok := m.trees2[g.root.tree].Annotation(n.tree)
 
 	if !ok {
 		panic("unknown feature")
 	}
 
-	for _, iVal := range nValues(n.k, n.l, n.f) {
+	d := make([]string, n.l)
+
+	if n.l > 0 {
+		d = append(d, n.f[n.k])
+	}
+
+	if n.l > 1 {
+		d = append(d, n.f[n.l-1])
+	}
+
+	for _, op := range Insertions(n.tree, d, feats[InsertionFeature]) {
+		insertion := op.(Insertion)
+
 		k := n.k
 		l := n.l
 
-		if iVal[0:1] == "l" {
+		if insertion.Position == Left {
 			k++
 			l--
 		}
 
-		if iVal[0:1] == "r" {
+		if insertion.Position == Right {
 			l--
 		}
 
-		i := &Node{n: iVal, tr: n.tr, f: n.f, k: k, l: l, nType: SubNode}
+		i := &Node{
+			n:     insertion,
+			tree:  n.tree,
+			f:     n.f,
+			k:     k,
+			l:     l,
+			nType: SubNode,
+		}
 
 		w := float64(1)
 
-		switch iVal[0:1] {
-		case "l":
-			w *= m.n1[feature.n][1]
-			w *= m.n2[iVal[1:]] // TODO n2 empty
-		case "r":
-			w *= m.n1[feature.n][2]
-			w *= m.n2[iVal[1:]] // TODO n2 empty
+		switch insertion.Position {
+		case Left:
+			w *= m.n1[feats[InsertionFeature]][1]
+			w *= m.n2[insertion.Word] // TODO n2 empty
+		case Right:
+			w *= m.n1[feats[InsertionFeature]][2]
+			w *= m.n2[insertion.Word] // TODO n2 empty
 		default:
-			w *= m.n1[feature.n][0]
+			w *= m.n1[feats[InsertionFeature]][0]
 		}
 
 		g.AddNode(i)
 		g.AddEdge(n, i, w)
 
-		if len(n.tr.Children) == 0 {
+		if len(n.tree.Children) == 0 {
+			translation := NewTranslation(i.Substring(), feats[TranslationFeature])
+
 			f := &Node{
-				t:     i.Substring(),
-				tr:    i.tr,
+				t:     translation,
+				tree:  i.tree,
 				nType: FinalNode,
 			}
 
 			w := float64(1)
 
-			if v, ok := m.t[feature.t][f.t]; ok {
+			if v, ok := m.t[feats[TranslationFeature]][translation.Key()]; ok {
 				w = v // TODO t empty
 			}
 
@@ -144,18 +165,33 @@ func (g *Graph) Expand(n *Node, m *Model) {
 			continue
 		}
 
-		for _, rVal := range rValues(n.tr) {
-			r := &Node{n: i.n, r: rVal, tr: i.tr, f: i.f, k: i.k, l: i.l, nType: SubNode}
+		for _, op := range Reorderings(n.tree, feats[ReorderingFeature]) {
+			reordering := op.(Reordering)
+
+			r := &Node{
+				n:     i.n,
+				r:     reordering,
+				tree:  i.tree,
+				f:     i.f,
+				k:     i.k,
+				l:     i.l,
+				nType: SubNode,
+			}
 
 			g.AddNode(r)
-			g.AddEdge(i, r, m.r[feature.r][r.r]) // TODO possible map access error?
+			g.AddEdge(i, r, m.r[feats[ReorderingFeature]][reordering.Key()]) // TODO possible map access error?
 
-			for _, partitioning := range partitionings(r.l, len(r.tr.Children)) {
-				if len(partitioning) != len(r.tr.Children) {
-					panic("fak")
+			for _, partitioning := range partitionings(r.l, len(r.tree.Children)) {
+				p := &Node{
+					n:     r.n,
+					r:     r.r,
+					p:     partitioning,
+					tree:  r.tree,
+					f:     r.f,
+					k:     r.k,
+					l:     r.l,
+					nType: SubNode,
 				}
-
-				p := &Node{n: r.n, r: r.r, p: partitioning, tr: r.tr, f: r.f, k: r.k, l: r.l, nType: SubNode}
 
 				g.AddNode(p)
 				g.AddEdge(r, p, 1)
@@ -164,13 +200,13 @@ func (g *Graph) Expand(n *Node, m *Model) {
 
 				k := r.k
 
-				for i, c := range r.tr.Children {
+				for i, c := range r.tree.Children {
 					if _, ok := major[c]; !ok {
 						major[c] = make(map[string]*Node)
 					}
 
 					m := &Node{
-						tr:    c,
+						tree:  c,
 						f:     p.f,
 						k:     k,
 						l:     partitioning[i],
@@ -241,7 +277,7 @@ func (g *Graph) Beta(n *Node) float64 {
 		return b
 	}
 
-	if len(n.tr.Children) == 0 {
+	if len(n.tree.Children) == 0 {
 		return 0.5 // TODO real weights
 	}
 

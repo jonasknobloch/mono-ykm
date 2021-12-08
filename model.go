@@ -106,35 +106,55 @@ func (m *Model) InitTrees() {
 func (m *Model) InitWeights() {
 	for _, mt := range m.trees {
 		mt.Tree.Walk(func(st *tree.Tree) {
-			f, ok := mt.Annotation(st)
+			a, ok := mt.Annotation(st)
 
 			if !ok {
 				return
 			}
 
-			if _, ok := m.n1[f.n]; !ok {
+			if _, ok := m.n1[a[InsertionFeature]]; !ok {
+				ops := Insertions(st, []string{}, a[InsertionFeature])
 
-				// TODO use nValues
-				// TODO init n2
+				var cN, cL, cR float64 = 0, 0, 0
 
-				m.n1[f.n] = [3]float64{1, 0, 0}
+				for _, op := range ops {
+					insertion := op.(Insertion)
+
+					switch insertion.Position {
+					case Left:
+						cL++
+					case Right:
+						cR++
+					default:
+						cN++
+					}
+				}
+
+				m.n1[a[InsertionFeature]] = [3]float64{
+					cN / float64(len(ops)),
+					cL / float64(len(ops)),
+					cR / float64(len(ops)),
+				}
+
+				// TODO populate n2
 			}
 
-			if _, ok := m.r[f.r]; !ok {
-				rs := rValues(st)
-				m.r[f.r] = make(map[string]float64, len(rs))
-				for _, r := range rs {
-					m.r[f.r][r] = 1 / float64(len(rs))
+			if _, ok := m.r[a[ReorderingFeature]]; !ok {
+				ops := Reorderings(st, a[ReorderingFeature])
+
+				m.r[a[ReorderingFeature]] = make(map[string]float64, len(ops))
+				for _, op := range ops {
+					m.r[a[ReorderingFeature]][op.Key()] = 1 / float64(len(ops))
 				}
 			}
 
-			if _, ok := m.t[f.t]; !ok {
-				m.t[f.t] = make(map[string]float64, 2)
+			if _, ok := m.t[a[TranslationFeature]]; !ok {
+				m.t[a[TranslationFeature]] = make(map[string]float64, 2)
 
-				// TODO use tValues
+				// TODO populate t
 
-				m.t[f.t][""] = 0.5
-				m.t[f.t][f.t] = 0.5
+				m.t[a[TranslationFeature]][""] = 0.5
+				m.t[a[TranslationFeature]][a[TranslationFeature]] = 0.5
 			}
 		})
 	}

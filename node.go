@@ -14,11 +14,11 @@ const (
 )
 
 type Node struct {
-	n     string
-	r     string
-	t     string
+	n     Insertion
+	r     Reordering
+	t     Translation
 	p     []int
-	tr    *tree.Tree
+	tree  *tree.Tree
 	f     []string
 	k     int
 	l     int
