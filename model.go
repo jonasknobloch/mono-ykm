@@ -103,7 +103,7 @@ func (m *Model) InitTrees() {
 	}
 }
 
-func (m *Model) InitWeights(nd []string) {
+func (m *Model) InitWeights(nd []string, td map[string][]string) {
 	for _, mt := range m.trees {
 		mt.Tree.Walk(func(st *tree.Tree) {
 			a, ok := mt.Annotation(st)
@@ -151,12 +151,13 @@ func (m *Model) InitWeights(nd []string) {
 			}
 
 			if _, ok := m.t[a[TranslationFeature]]; !ok && a[TranslationFeature] != "" {
-				m.t[a[TranslationFeature]] = make(map[string]float64, 2)
+				m.t[a[TranslationFeature]] = make(map[string]float64, len(td[a[TranslationFeature]])+1)
 
-				// TODO populate t
+				m.t[a[TranslationFeature]][""] = 1 / float64(len(td[a[TranslationFeature]])+1)
 
-				m.t[a[TranslationFeature]][""] = 0.5
-				m.t[a[TranslationFeature]][a[TranslationFeature]] = 0.5
+				for _, w := range td[a[TranslationFeature]] {
+					m.t[a[TranslationFeature]][w] = 1 / float64(len(td[a[TranslationFeature]])+1)
+				}
 			}
 		})
 	}
