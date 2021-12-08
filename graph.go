@@ -94,7 +94,7 @@ func (g *Graph) Expand(n *Node, m *Model) {
 		panic("unknown feature")
 	}
 
-	d := make([]string, n.l)
+	d := make([]string, 0)
 
 	if n.l > 0 {
 		d = append(d, n.f[n.k])
@@ -200,7 +200,9 @@ func (g *Graph) Expand(n *Node, m *Model) {
 
 				k := r.k
 
-				for i, c := range r.tree.Children {
+				for i := 0; i < len(r.tree.Children); i++ {
+					c := r.tree.Children[p.r.Reordering[i]]
+
 					if _, ok := major[c]; !ok {
 						major[c] = make(map[string]*Node)
 					}
