@@ -85,7 +85,7 @@ func NewReordering(p []int, f string) Reordering {
 	}
 
 	return Reordering{
-		feature:    f,
+		feature:    f[1:],
 		key:        join(p),
 		Reordering: p,
 	}
