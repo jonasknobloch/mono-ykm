@@ -40,7 +40,7 @@ func NewGraph(t *tree.Tree, f []string, m *Model) *Graph {
 			continue
 		}
 
-		g.Alpha(node)
+		g.Alpha(g.pred[g.pred[node][0]][0])
 	}
 
 	return g
@@ -196,7 +196,7 @@ func (g *Graph) Expand(n *Node, m *Model) {
 				g.AddNode(p)
 				g.AddEdge(r, p, 1)
 
-				g.major[n] = p
+				g.major[p] = n
 
 				k := r.k
 
@@ -242,36 +242,42 @@ func (g *Graph) Alpha(n *Node) float64 {
 	}
 
 	if n == g.root {
+		g.pAlpha[n] = float64(1)
+
 		return float64(1)
 	}
 
-	a := float64(0)
+	sum := float64(0)
 
 	for _, parent := range g.pred[n] {
-		prod := g.Alpha(parent)
+		mp := g.major[parent]
+		prod := g.Alpha(mp)
 
-		for _, i := range g.succ[parent] {
-			prod *= g.edges[[2]*Node{parent, i}]
+		for _, i := range g.succ[mp] {
+			prod *= g.edges[[2]*Node{mp, i}]
 
 			for _, r := range g.succ[i] {
 				prod *= g.edges[[2]*Node{i, r}]
 
-				for _, m := range g.succ[r] {
-					if m == n {
-						continue
-					}
+				for _, p := range g.succ[r] {
+					for _, m := range g.succ[p] {
+						if m == n {
+							continue
+						}
 
-					prod *= g.Beta(m)
+						beta := g.Beta(m)
+						prod *= beta
+					}
 				}
 			}
 		}
 
-		a += prod
+		sum += prod
 	}
 
-	g.pAlpha[n] = a
+	g.pAlpha[n] = sum
 
-	return a
+	return sum
 }
 
 func (g *Graph) Beta(n *Node) float64 {
