@@ -4,21 +4,50 @@ import (
 	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"sort"
-	"strings"
 )
 
 func main() {
 	m := NewModel()
 
-	m.InitTrees()
-	m.InitWeights()
+	t := &tree.Tree{
+		Label: "σ",
+		Children: []*tree.Tree{
+			{
+				Label:    "α",
+				Children: nil,
+			},
+			{
+				Label: "γ",
+				Children: []*tree.Tree{
+					{
+						Label:    "β",
+						Children: nil,
+					},
+				},
+			},
+		},
+	}
 
-	tr := m.trees[702876].Tree
-	f := strings.Split(m.trees[702977].Tree.Sentence(), " ")
+	mt := NewMetaTree(t)
 
-	g := NewGraph(tr, f, m)
+	m.trees[1234] = mt
+	m.trees2[t] = mt
+
+	f := []string{"s", "b", "a"}
+
+	nd := []string{"s"}
+
+	td := map[string][]string{
+		"α": {"s", "a", "b"},
+		"β": {"s", "a", "b"},
+	}
+
+	m.InitWeights(nd, td)
+
+	g := NewGraph(t, f, m)
 
 	fmt.Println(len(g.nodes))
+	fmt.Println(len(g.pruned))
 }
 
 // Insert adds a new child node with the given label
