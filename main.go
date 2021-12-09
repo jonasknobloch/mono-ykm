@@ -48,6 +48,8 @@ func main() {
 
 	fmt.Println(len(g.nodes))
 	fmt.Println(len(g.pruned))
+
+	g.Draw()
 }
 
 // Insert adds a new child node with the given label
