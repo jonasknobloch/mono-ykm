@@ -141,22 +141,26 @@ func (m *Model) InitWeights(nd []string, td map[string][]string) {
 				m.n2[w] = 1 / float64(len(nd))
 			}
 
-			if _, ok := m.r[a[ReorderingFeature]]; !ok && a[ReorderingFeature] != "" {
-				ops := Reorderings(st, a[ReorderingFeature])
+			if a[ReorderingFeature] != "" {
+				if _, ok := m.r[a[ReorderingFeature]]; !ok {
+					ops := Reorderings(st, a[ReorderingFeature])
 
-				m.r[a[ReorderingFeature]] = make(map[string]float64, len(ops))
-				for _, op := range ops {
-					m.r[a[ReorderingFeature]][op.Key()] = 1 / float64(len(ops))
+					m.r[a[ReorderingFeature]] = make(map[string]float64, len(ops))
+					for _, op := range ops {
+						m.r[a[ReorderingFeature]][op.Key()] = 1 / float64(len(ops))
+					}
 				}
 			}
 
-			if _, ok := m.t[a[TranslationFeature]]; !ok && a[TranslationFeature] != "" {
-				m.t[a[TranslationFeature]] = make(map[string]float64, len(td[a[TranslationFeature]])+1)
+			if a[TranslationFeature] != "" {
+				if _, ok := m.t[a[TranslationFeature]]; !ok {
+					m.t[a[TranslationFeature]] = make(map[string]float64, len(td[a[TranslationFeature]])+1)
 
-				m.t[a[TranslationFeature]][""] = 1 / float64(len(td[a[TranslationFeature]])+1)
+					m.t[a[TranslationFeature]][""] = 1 / float64(len(td[a[TranslationFeature]])+1)
 
-				for _, w := range td[a[TranslationFeature]] {
-					m.t[a[TranslationFeature]][w] = 1 / float64(len(td[a[TranslationFeature]])+1)
+					for _, w := range td[a[TranslationFeature]] {
+						m.t[a[TranslationFeature]][w] = 1 / float64(len(td[a[TranslationFeature]])+1)
+					}
 				}
 			}
 		})
