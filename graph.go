@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 )
 
@@ -14,6 +13,7 @@ type Graph struct {
 	major  map[*Node]*Node
 	pAlpha map[*Node]float64
 	pBeta  map[*Node]float64
+	pruned map[*Node]struct{}
 }
 
 func NewGraph(t *tree.Tree, f []string, m *Model) *Graph {
@@ -28,15 +28,64 @@ func NewGraph(t *tree.Tree, f []string, m *Model) *Graph {
 		major:  make(map[*Node]*Node), // partitioning -> parent major
 		pAlpha: make(map[*Node]float64),
 		pBeta:  make(map[*Node]float64),
+		pruned: make(map[*Node]struct{}),
 	}
 
 	g.AddNode(n)
 	g.Expand(n, m)
 
+	for _, node := range g.nodes {
+		if node.nType != FinalNode {
+			continue
+		}
+
+		if g.edges[[2]*Node{g.pred[node][0], node}] == 0 {
+			g.Prune(node)
+		}
+	}
+
+	for _, node := range g.nodes {
+		if node.nType != MajorNode || node == g.root {
+			continue
+		}
+
+		if _, ok := g.pruned[node]; ok {
+			continue
+		}
+
+		orphan := true
+
+		for _, p := range g.pred[node] {
+			if _, ok := g.pruned[p]; !ok {
+				orphan = false
+				break
+			}
+		}
+
+		if !orphan {
+			continue
+		}
+
+		var pruneOrphan func(o *Node)
+		pruneOrphan = func(o *Node) {
+			g.pruned[o] = struct{}{}
+
+			for _, s := range g.succ[o] {
+				pruneOrphan(s)
+			}
+		}
+
+		pruneOrphan(node)
+	}
+
 	g.Beta(n)
 
 	for _, node := range g.nodes {
 		if node.nType != FinalNode {
+			continue
+		}
+
+		if _, ok := g.pruned[node]; ok {
 			continue
 		}
 
@@ -152,15 +201,19 @@ func (g *Graph) Expand(n *Node, m *Model) {
 			translation := NewTranslation(i.Substring(), feats[TranslationFeature])
 
 			f := &Node{
+				n:     i.n,
 				t:     translation,
 				tree:  i.tree,
+				f:     i.f,
+				k:     i.k,
+				l:     i.l,
 				nType: FinalNode,
 			}
 
-			w := float64(1)
+			w := float64(0)
 
 			if v, ok := m.t[feats[TranslationFeature]][translation.Key()]; ok {
-				w = v // TODO t empty
+				w = v
 			}
 
 			g.AddNode(f)
@@ -253,24 +306,23 @@ func (g *Graph) Alpha(n *Node) float64 {
 
 	sum := float64(0)
 
-	for _, parent := range g.pred[n] {
+	for _, parent := range g.Predecessor(n) {
 		mp := g.major[parent]
 		prod := g.Alpha(mp)
 
-		for _, i := range g.succ[mp] {
+		for _, i := range g.Successor(mp) {
 			prod *= g.edges[[2]*Node{mp, i}]
 
-			for _, r := range g.succ[i] {
+			for _, r := range g.Successor(i) {
 				prod *= g.edges[[2]*Node{i, r}]
 
-				for _, p := range g.succ[r] {
-					for _, m := range g.succ[p] {
+				for _, p := range g.Successor(r) {
+					for _, m := range g.Successor(p) {
 						if m == n {
 							continue
 						}
 
-						beta := g.Beta(m)
-						prod *= beta
+						prod *= g.Beta(m)
 					}
 				}
 			}
@@ -290,24 +342,34 @@ func (g *Graph) Beta(n *Node) float64 {
 	}
 
 	if len(n.tree.Children) == 0 {
-		return 0.5 // TODO real weights
+		sumT := float64(0)
+
+		for _, i := range g.Successor(n) {
+			for _, f := range g.Successor(i) {
+				sumT += g.edges[[2]*Node{i, f}]
+			}
+		}
+
+		g.pBeta[n] = sumT
+
+		return sumT
 	}
 
 	sumI := float64(0)
 	sumR := float64(0)
 	sumP := float64(0)
 
-	for _, i := range g.succ[n] {
+	for _, i := range g.Successor(n) {
 		w := g.edges[[2]*Node{n, i}]
 		sumI += w
 
-		for _, r := range g.succ[g.succ[n][0]] {
-			sumR += w * g.edges[[2]*Node{g.succ[n][0], r}] // TODO verify
+		for _, r := range g.Successor(i) {
+			sumR += w * g.edges[[2]*Node{i, r}]
 
-			for _, p := range g.succ[r] {
+			for _, p := range g.Successor(r) {
 				prod := float64(1)
 
-				for _, m := range g.succ[p] {
+				for _, m := range g.Successor(p) {
 					prod *= g.Beta(m)
 				}
 
@@ -317,14 +379,62 @@ func (g *Graph) Beta(n *Node) float64 {
 	}
 
 	b := sumI * sumR * sumP
-
-	if b > 1 {
-		fmt.Println("pBeta > 1")
-
-		b = 1 // TODO fix
-	}
-
 	g.pBeta[n] = b
 
 	return b
+}
+
+func (g *Graph) Successor(n *Node) []*Node {
+	succ := make([]*Node, 0)
+
+	for _, s := range g.succ[n] {
+		if _, ok := g.pruned[s]; ok {
+			continue
+		}
+
+		succ = append(succ, s)
+	}
+
+	return succ
+}
+
+func (g *Graph) Predecessor(n *Node) []*Node {
+	pred := make([]*Node, 0)
+
+	for _, p := range g.pred[n] {
+		if _, ok := g.pruned[p]; ok {
+			continue
+		}
+
+		pred = append(pred, p)
+	}
+
+	return pred
+}
+
+func (g *Graph) Prune(n *Node) {
+	g.pruned[n] = struct{}{}
+
+	if n.nType == MajorNode {
+		for _, p := range g.pred[n] {
+			g.Prune(p)
+		}
+
+		return
+	}
+
+	for _, p := range g.pred[n] {
+		prune := true
+
+		for _, s := range g.succ[p] {
+			if _, ok := g.pruned[s]; !ok {
+				prune = false
+				break
+			}
+		}
+
+		if prune {
+			g.Prune(p)
+		}
+	}
 }
