@@ -97,11 +97,15 @@ func (g *Graph) Expand(n *Node, m *Model) {
 	d := make([]string, 0)
 
 	if n.l > 0 {
-		d = append(d, n.f[n.k])
+		if _, ok := m.n2[n.f[n.k]]; ok {
+			d = append(d, n.f[n.k])
+		}
 	}
 
 	if n.l > 1 {
-		d = append(d, n.f[n.l-1])
+		if _, ok := m.n2[n.f[n.l-1]]; ok {
+			d = append(d, n.f[n.l-1])
+		}
 	}
 
 	for _, op := range Insertions(n.tree, d, feats[InsertionFeature]) {
