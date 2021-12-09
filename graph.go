@@ -103,8 +103,8 @@ func (g *Graph) Expand(n *Node, m *Model) {
 	}
 
 	if n.l > 1 {
-		if _, ok := m.n2[n.f[n.l-1]]; ok {
-			d = append(d, n.f[n.l-1])
+		if _, ok := m.n2[n.f[n.k+n.l-1]]; ok {
+			d = append(d, n.f[n.k+n.l-1])
 		}
 	}
 
