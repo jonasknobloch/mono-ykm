@@ -280,7 +280,7 @@ func (g *Graph) Expand(n *Node, m *Model) {
 						nType: MajorNode,
 					}
 
-					k = partitioning[i]
+					k += partitioning[i]
 
 					sub := m.Substring()
 					if _, ok := major[c][sub]; !ok {
