@@ -35,7 +35,7 @@ func main() {
 
 	f := []string{"s", "b", "a"}
 
-	nd := []string{"s"}
+	nd := []string{"s", "a", "b"}
 
 	td := map[string][]string{
 		"α": {"s", "a", "b"},
