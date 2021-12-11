@@ -1,15 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"sort"
 )
 
 func main() {
-	m := NewModel()
-
-	t := &tree.Tree{
+	tr := &tree.Tree{
 		Label: "σ",
 		Children: []*tree.Tree{
 			{
@@ -28,28 +25,10 @@ func main() {
 		},
 	}
 
-	mt := NewMetaTree(t)
+	pCache["αβ"] = NewMetaTree(tr)
 
-	m.trees[1234] = mt
-	m.trees2[t] = mt
-
-	f := []string{"s", "b", "a"}
-
-	nd := []string{"s", "a", "b"}
-
-	td := map[string][]string{
-		"α": {"s", "a", "b"},
-		"β": {"s", "a", "b"},
-	}
-
-	m.InitWeights(nd, td)
-
-	g := NewGraph(t, f, m)
-
-	fmt.Println(len(g.nodes))
-	fmt.Println(len(g.pruned))
-
-	g.Draw()
+	tCache["αβ"] = []string{"α", "β"}
+	tCache["sba"] = []string{"s", "b", "a"}
 }
 
 // Insert adds a new child node with the given label

@@ -16,8 +16,8 @@ type Graph struct {
 	pruned map[*Node]struct{}
 }
 
-func NewGraph(t *tree.Tree, f []string, m *Model) *Graph {
-	n := &Node{tree: t, f: f, k: 0, l: len(f), nType: MajorNode}
+func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
+	n := &Node{tree: mt.Tree, f: f, k: 0, l: len(f), nType: MajorNode}
 
 	g := &Graph{
 		root:   n,
@@ -32,7 +32,7 @@ func NewGraph(t *tree.Tree, f []string, m *Model) *Graph {
 	}
 
 	g.AddNode(n)
-	g.Expand(n, m)
+	g.Expand(n, m, mt.meta)
 
 	for _, node := range g.nodes {
 		if node.nType != FinalNode {
@@ -134,10 +134,10 @@ func partitionings(n, k int) [][]int {
 	return p(n, k, make([][]int, 0))
 }
 
-func (g *Graph) Expand(n *Node, m *Model) {
+func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 	major := make(map[*tree.Tree]map[string]*Node)
 
-	feats, ok := m.trees2[g.root.tree].Annotation(n.tree)
+	feats, ok := fm[n.tree]
 
 	if !ok {
 		panic("unknown feature")
@@ -189,21 +189,8 @@ func (g *Graph) Expand(n *Node, m *Model) {
 			nType: SubNode,
 		}
 
-		w := float64(1)
-
-		switch insertion.Position {
-		case Left:
-			w *= m.n1[feats[InsertionFeature]][1]
-			w *= m.n2[insertion.Word] // TODO n2 empty
-		case Right:
-			w *= m.n1[feats[InsertionFeature]][2]
-			w *= m.n2[insertion.Word] // TODO n2 empty
-		default:
-			w *= m.n1[feats[InsertionFeature]][0]
-		}
-
 		g.AddNode(i)
-		g.AddEdge(n, i, w)
+		g.AddEdge(n, i, m.PInsertion(insertion, len(n.tree.Children) == 0))
 
 		if len(n.tree.Children) == 0 {
 			translation := NewTranslation(i.Substring(), feats[TranslationFeature])
@@ -218,14 +205,8 @@ func (g *Graph) Expand(n *Node, m *Model) {
 				nType: FinalNode,
 			}
 
-			w := float64(0)
-
-			if v, ok := m.t[feats[TranslationFeature]][translation.Key()]; ok {
-				w = v
-			}
-
 			g.AddNode(f)
-			g.AddEdge(i, f, w)
+			g.AddEdge(i, f, m.PTranslation(translation))
 
 			continue
 		}
@@ -244,7 +225,7 @@ func (g *Graph) Expand(n *Node, m *Model) {
 			}
 
 			g.AddNode(r)
-			g.AddEdge(i, r, m.r[feats[ReorderingFeature]][reordering.Key()]) // TODO possible map access error?
+			g.AddEdge(i, r, m.PReordering(reordering))
 
 			for _, partitioning := range partitionings(r.l, len(r.tree.Children)) {
 				p := &Node{
@@ -296,7 +277,7 @@ func (g *Graph) Expand(n *Node, m *Model) {
 
 	for _, v := range major {
 		for _, node := range v {
-			g.Expand(node, m)
+			g.Expand(node, m, fm)
 		}
 	}
 }
