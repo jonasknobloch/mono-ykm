@@ -14,6 +14,12 @@ type Graph struct {
 	pAlpha map[*Node]float64
 	pBeta  map[*Node]float64
 	pruned map[*Node]struct{}
+
+	// TODO populate feature mappings
+
+	insertions   map[string][]*Node // feature -> MajorNode
+	reorderings  map[string][]*Node // feature -> MajorNode
+	translations map[string][]*Node // feature -> MajorNode
 }
 
 func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {

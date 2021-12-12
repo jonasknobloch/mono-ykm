@@ -90,3 +90,44 @@ func (m *Model) PReordering(reordering Reordering) float64 {
 func (m *Model) PTranslation(translation Translation) float64 {
 	return m.t[translation.feature][translation.key]
 }
+
+func (m *Model) UpdateWeights(g *Graph) {
+	// TODO update insertions
+
+	sumR := float64(0)
+
+	for feature, keys := range m.r {
+		for key := range keys {
+			sumR += g.ReorderingCount(key, feature)
+		}
+	}
+
+	for feature, keys := range m.r {
+		for key := range keys {
+			count := g.ReorderingCount(key, feature)
+
+			if count > 0 && sumR > 0 {
+				m.r[feature][key] = count / sumR
+
+			}
+		}
+	}
+
+	sumT := float64(0)
+
+	for feature, keys := range m.t {
+		for key := range keys {
+			sumT += g.TranslationCount(key, feature)
+		}
+	}
+
+	for feature, keys := range m.t {
+		for key := range keys {
+			count := g.TranslationCount(key, feature)
+
+			if count > 0 && sumT > 0 {
+				m.r[feature][key] = count / sumT
+			}
+		}
+	}
+}

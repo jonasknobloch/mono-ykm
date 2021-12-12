@@ -147,6 +147,10 @@ func TrainEM() {
 
 		g.Draw()
 
+		fmt.Println("Adjusting model weights...")
+
+		m.UpdateWeights(g)
+
 		counter++
 	}
 }
