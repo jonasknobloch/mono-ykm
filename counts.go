@@ -1,22 +1,32 @@
 package main
 
-func (g *Graph) CumulativeWeights(n *Node) (float64, float64, float64) {
-	if n.nType == MajorNode {
+func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) float64 {
+	if n.nType != MajorNode {
 		panic("not a major node")
 	}
 
+	if len(n.tree.Children) == 0 {
+		panic("not an interior node node")
+	}
+
 	sumI := float64(0)
-	sumR := float64(0)
-	sumP := float64(0)
 
 	for _, i := range g.Successor(n) {
-		sumI += g.edges[[2]*Node{n, i}]
+		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
+			continue
+		}
+
+		sumR := float64(0)
 
 		for _, r := range g.Successor(i) {
-			sumR += g.edges[[2]*Node{i, r}]
+			if len(filter) > 1 && filter[1] != "" && r.n.key != filter[1] {
+				continue
+			}
+
+			sumP := float64(0)
 
 			for _, p := range g.Successor(r) {
-				prod := float64(0)
+				prod := float64(1)
 
 				for _, m := range g.Successor(p) {
 					prod *= g.Beta(m)
@@ -24,10 +34,42 @@ func (g *Graph) CumulativeWeights(n *Node) (float64, float64, float64) {
 
 				sumP += prod
 			}
+
+			sumR += g.edges[[2]*Node{i, r}] * sumP
 		}
+
+		sumI += g.edges[[2]*Node{n, i}] * sumR
 	}
 
-	return sumI, sumR, sumP
+	return sumI
+}
+
+func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
+	if n.nType != MajorNode {
+		panic("not a major node")
+	}
+
+	if len(n.tree.Children) > 0 {
+		panic("not a terminal node")
+	}
+
+	sumI := float64(0)
+
+	for _, i := range g.Successor(n) {
+		sumT := float64(0)
+
+		for _, t := range g.Successor(i) {
+			if len(filter) > 0 && t.t.key == filter[0] {
+				continue
+			}
+
+			sumT += g.edges[[2]*Node{i, t}]
+		}
+
+		sumI += g.edges[[2]*Node{n, i}] * sumT
+	}
+
+	return sumI
 }
 
 func (g *Graph) InsertionCount(key string, feature string) float64 {
@@ -37,20 +79,10 @@ func (g *Graph) InsertionCount(key string, feature string) float64 {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
-
-		for _, i := range g.Successor(m) {
-			if i.n.key == key {
-				prod *= g.edges[[2]*Node{m, i}]
-				break
-			}
-		}
-
-		_, sumR, sumP := g.CumulativeWeights(m)
-
-		prod *= sumR
-		prod *= sumP
+		prod *= g.InsideWeightsInterior(m, key)
 
 		prod /= g.Beta(m)
+
 		sum += prod
 	}
 
@@ -64,24 +96,10 @@ func (g *Graph) ReorderingCount(key string, feature string) float64 {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
-
-		// TODO multiple reorderings with identical keys
-
-		for _, i := range g.Successor(m) {
-			for _, r := range g.Successor(i) {
-				if r.r.key == key {
-					prod *= g.edges[[2]*Node{i, r}]
-					break
-				}
-			}
-		}
-
-		sumI, _, sumP := g.CumulativeWeights(m)
-
-		prod *= sumI
-		prod *= sumP
+		prod *= g.InsideWeightsInterior(m, "", key)
 
 		prod /= g.Beta(m)
+
 		sum += prod
 	}
 
@@ -95,18 +113,11 @@ func (g *Graph) TranslationCount(key string, feature string) float64 {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
-
-		// TODO multiple translations with identical keys
-
-		for _, i := range g.Successor(m) {
-			for _, f := range g.Successor(i) {
-				if f.t.key == key {
-					prod *= g.edges[[2]*Node{i, f}]
-				}
-			}
-		}
+		prod *= g.InsideWeightsTerminal(m, key)
 
 		prod /= g.Beta(m)
+
+		sum += prod
 	}
 
 	return sum

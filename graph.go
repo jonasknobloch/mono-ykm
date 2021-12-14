@@ -337,46 +337,12 @@ func (g *Graph) Beta(n *Node) float64 {
 	}
 
 	if len(n.tree.Children) == 0 {
-		sumT := float64(0)
-
-		for _, i := range g.Successor(n) {
-			for _, f := range g.Successor(i) {
-				sumT += g.edges[[2]*Node{i, f}]
-			}
-		}
-
-		g.pBeta[n] = sumT
-
-		return sumT
+		g.pBeta[n] = g.InsideWeightsTerminal(n)
+	} else {
+		g.pBeta[n] = g.InsideWeightsInterior(n)
 	}
 
-	sumI := float64(0)
-	sumR := float64(0)
-	sumP := float64(0)
-
-	for _, i := range g.Successor(n) {
-		w := g.edges[[2]*Node{n, i}]
-		sumI += w
-
-		for _, r := range g.Successor(i) {
-			sumR += w * g.edges[[2]*Node{i, r}]
-
-			for _, p := range g.Successor(r) {
-				prod := float64(1)
-
-				for _, m := range g.Successor(p) {
-					prod *= g.Beta(m)
-				}
-
-				sumP += prod
-			}
-		}
-	}
-
-	b := sumI * sumR * sumP
-	g.pBeta[n] = b
-
-	return b
+	return g.pBeta[n]
 }
 
 func (g *Graph) Successor(n *Node) []*Node {
