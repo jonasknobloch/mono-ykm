@@ -15,8 +15,6 @@ type Graph struct {
 	pBeta  map[*Node]float64
 	pruned map[*Node]struct{}
 
-	// TODO populate feature mappings
-
 	insertions   map[string][]*Node // feature -> MajorNode
 	reorderings  map[string][]*Node // feature -> MajorNode
 	translations map[string][]*Node // feature -> MajorNode
@@ -35,6 +33,10 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		pAlpha: make(map[*Node]float64),
 		pBeta:  make(map[*Node]float64),
 		pruned: make(map[*Node]struct{}),
+
+		insertions:   make(map[string][]*Node),
+		reorderings:  make(map[string][]*Node),
+		translations: make(map[string][]*Node),
 	}
 
 	g.AddNode(n)
@@ -147,6 +149,30 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 
 	if !ok {
 		panic("unknown feature")
+	}
+
+	if feats[0] != "" {
+		if _, ok := g.insertions[feats[0]]; !ok {
+			g.insertions[feats[0]] = make([]*Node, 0)
+		}
+
+		g.insertions[feats[0]] = append(g.insertions[feats[0]], n)
+	}
+
+	if feats[1] != "" {
+		if _, ok := g.reorderings[feats[1]]; !ok {
+			g.reorderings[feats[1]] = make([]*Node, 0)
+		}
+
+		g.reorderings[feats[1]] = append(g.reorderings[feats[1]], n)
+	}
+
+	if feats[2] != "" {
+		if _, ok := g.translations[feats[2]]; !ok {
+			g.translations[feats[2]] = make([]*Node, 0)
+		}
+
+		g.translations[feats[2]] = append(g.reorderings[feats[2]], n)
 	}
 
 	is := make([]Insertion, 0)
