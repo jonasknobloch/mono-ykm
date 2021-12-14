@@ -126,7 +126,7 @@ func (m *Model) UpdateWeights(g *Graph) {
 			count := g.TranslationCount(key, feature)
 
 			if count > 0 && sumT > 0 {
-				m.r[feature][key] = count / sumT
+				m.t[feature][key] = count / sumT
 			}
 		}
 	}
