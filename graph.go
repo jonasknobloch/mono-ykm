@@ -151,7 +151,9 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		panic("unknown feature")
 	}
 
-	if feats[0] != "" {
+	// TODO propagate insertion feature for leafs
+
+	if feats[0] != "" && len(n.tree.Children) > 0 {
 		if _, ok := g.insertions[feats[0]]; !ok {
 			g.insertions[feats[0]] = make([]*Node, 0)
 		}
@@ -180,19 +182,19 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 	is = append(is, NewInsertion(None, "", feats[InsertionFeature]))
 
 	if len(n.tree.Children) > 0 && n.l > 0 {
-		if _, ok := m.n2[n.f[n.k]]; ok {
+		if _, ok := m.n[feats[InsertionFeature]][string(Left)+" "+n.f[n.k]]; ok {
 			is = append(is, NewInsertion(Left, n.f[n.k], feats[InsertionFeature]))
 		}
 	}
 
 	if len(n.tree.Children) > 0 && n.l == 1 {
-		if _, ok := m.n2[n.f[n.k]]; ok {
+		if _, ok := m.n[feats[InsertionFeature]][string(Right)+" "+n.f[n.k]]; ok {
 			is = append(is, NewInsertion(Right, n.f[n.k], feats[InsertionFeature]))
 		}
 	}
 
 	if len(n.tree.Children) > 0 && n.l > 1 {
-		if _, ok := m.n2[n.f[n.k+n.l-1]]; ok {
+		if _, ok := m.n[feats[InsertionFeature]][string(Right)+" "+n.f[n.k+n.l-1]]; ok {
 			is = append(is, NewInsertion(Right, n.f[n.k+n.l-1], feats[InsertionFeature]))
 		}
 	}
@@ -222,7 +224,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		}
 
 		g.AddNode(i)
-		g.AddEdge(n, i, m.PInsertion(insertion, len(n.tree.Children) == 0))
+		g.AddEdge(n, i, m.PInsertion(insertion))
 
 		if len(n.tree.Children) == 0 {
 			translation := NewTranslation(i.Substring(), feats[TranslationFeature])

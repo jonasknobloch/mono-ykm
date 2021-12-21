@@ -112,11 +112,11 @@ func TrainEM() {
 
 	fmt.Println("Building dictionaries...")
 
-	nList, tDict := buildDictionaries()
+	nDict, tDict := buildDictionaries()
 
 	fmt.Println("Initializing weights...")
 
-	m.InitInsertionWeights(nList)
+	m.InitInsertionWeights(nDict)
 	m.InitTranslationWeights(tDict)
 
 	initCorpus() // TODO method arg for iterator?
@@ -155,28 +155,20 @@ func TrainEM() {
 	}
 }
 
-func buildDictionaries() (map[string]int, map[string]map[string]int) {
-	insertions := make(map[string]int)
+func buildDictionaries() (map[string]map[string]int, map[string]map[string]int) {
+	insertions := make(map[string]map[string]int)
 	translations := make(map[string]map[string]int)
 
-	addInsertion := func(w string) {
-		if _, ok := insertions[w]; !ok {
-			insertions[w] = 0
+	addParameter := func(m map[string]map[string]int, f, k string) {
+		if _, ok := m[f]; !ok {
+			m[f] = make(map[string]int)
 		}
 
-		insertions[w]++
-	}
-
-	addTranslation := func(w1, w2 string) {
-		if _, ok := translations[w1]; !ok {
-			translations[w1] = make(map[string]int)
+		if _, ok := m[f][k]; !ok {
+			m[f][k] = 0
 		}
 
-		if _, ok := translations[w1][w2]; !ok {
-			translations[w1][w2] = 0
-		}
-
-		translations[w1][w2]++
+		m[f][k]++
 	}
 
 	for corpus.Next() {
@@ -186,34 +178,20 @@ func buildDictionaries() (map[string]int, map[string]map[string]int) {
 			continue
 		}
 
-		e, _ := tokenize(sample.String1)
-		f, _ := tokenize(sample.String2)
-
-		for _, w := range f {
-			addInsertion(w)
-		}
-
-		for _, s := range e {
-			for _, t := range f {
-				addTranslation(s, t)
-			}
-		}
-
 		// TODO consider both directions
-		//
-		// e1, _ := tokenize(sample.String1)
-		// e2, _ := tokenize(sample.String2)
-		//
-		// for _, w := range append(e1, e2...) {
-		// 	addInsertion(w)
-		// }
-		//
-		// for _, w1 := range e1 {
-		// 	for _, w2 := range e2 {
-		// 		addTranslation(w1, w2)
-		// 		addTranslation(w2, w1)
-		// 	}
-		// }
+
+		mt, _ := parse(sample.String1)
+		e, _ := tokenize(sample.String2)
+
+		mt.Tree.Walk(func(st *tree.Tree) {
+			for _, i := range Insertions(st, e, mt.meta[st][0]) {
+				addParameter(insertions, i.Feature(), i.Key())
+			}
+
+			for _, t := range Translations(st, e, mt.meta[st][2]) {
+				addParameter(translations, t.Feature(), t.Key())
+			}
+		})
 	}
 
 	return insertions, translations

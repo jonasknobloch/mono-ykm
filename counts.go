@@ -79,7 +79,7 @@ func (g *Graph) InsertionCount(key string, feature string) float64 {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
-		prod *= g.InsideWeightsInterior(m, key)
+		prod *= g.InsideWeightsInterior(m, key) // TODO support insertions at leafs
 
 		prod /= g.Beta(m)
 
