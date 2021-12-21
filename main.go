@@ -30,7 +30,7 @@ func main() {
 	tCache["αβ"] = []string{"α", "β"}
 	tCache["sba"] = []string{"s", "b", "a"}
 
-	TrainEM()
+	TrainEM(5, -1)
 }
 
 // Insert adds a new child node with the given label

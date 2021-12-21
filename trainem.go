@@ -107,7 +107,7 @@ func parse(str string) (*MetaTree, error) {
 	return pCache[str], nil
 }
 
-func TrainEM() {
+func TrainEM(iterations, samples int) {
 	m := NewModel()
 
 	fmt.Println("Building dictionaries...")
@@ -119,39 +119,33 @@ func TrainEM() {
 	m.InitInsertionWeights(nDict)
 	m.InitTranslationWeights(tDict)
 
-	initCorpus() // TODO method arg for iterator?
+	for i := 0; i < iterations; i++ {
+		fmt.Printf("\nStarting training iteration #%d\n", i)
 
-	limit := 1
-	counter := 0
+		initCorpus() // TODO just reset iterator
 
-	for corpus.Next() && counter < limit {
-		sample := corpus.Sample()
+		limit := samples
+		counter := 0
 
-		fmt.Println("Analyzing sample...")
-		fmt.Println("Parsing source sentence...")
+		for corpus.Next() && (limit == -1 || counter < limit) {
+			sample := corpus.Sample()
 
-		mt, _ := parse(sample.String1)
+			fmt.Printf("Analyzing sample #%d\n", counter)
 
-		fmt.Println("Tokenizing target sentence...")
+			mt, _ := parse(sample.String1)
+			f, _ := tokenize(sample.String2)
 
-		f, _ := tokenize(sample.String2)
+			g := NewGraph(mt, f, m)
 
-		fmt.Println("Generating training graph...")
+			fmt.Printf("Nodes: %d (%d) Edges: %d\n", len(g.nodes)-len(g.pruned), len(g.nodes), len(g.edges))
+			fmt.Printf("Alpha: %f Beta: %f\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
 
-		g := NewGraph(mt, f, m)
+			fmt.Println("Adjusting model weights...")
 
-		fmt.Printf("\nNodes: %d (%d) Edges: %d\n", len(g.nodes)-len(g.pruned), len(g.nodes), len(g.edges))
-		fmt.Printf("Alpha: %f Beta: %f\n\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
+			m.UpdateWeights(g)
 
-		fmt.Println("Drawing graph...")
-
-		g.Draw()
-
-		fmt.Println("Adjusting model weights...")
-
-		m.UpdateWeights(g)
-
-		counter++
+			counter++
+		}
 	}
 }
 
