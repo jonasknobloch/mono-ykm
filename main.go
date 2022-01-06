@@ -10,8 +10,13 @@ func main() {
 		Label: "σ",
 		Children: []*tree.Tree{
 			{
-				Label:    "α",
-				Children: nil,
+				Label: "γ",
+				Children: []*tree.Tree{
+					{
+						Label:    "α",
+						Children: nil,
+					},
+				},
 			},
 			{
 				Label: "γ",
@@ -25,10 +30,10 @@ func main() {
 		},
 	}
 
-	pCache["αβ"] = NewMetaTree(tr)
+	pCache["α β"] = NewMetaTree(tr)
 
-	tCache["αβ"] = []string{"α", "β"}
-	tCache["sba"] = []string{"s", "b", "a"}
+	tCache["α β"] = []string{"α", "β"}
+	tCache["s b a"] = []string{"s", "b", "a"}
 
 	TrainEM(5, -1)
 }
