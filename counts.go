@@ -76,7 +76,7 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
 	return sumI
 }
 
-func (g *Graph) InsertionCount(key string, feature string) float64 {
+func (g *Graph) InsertionCount(feature, key string) float64 {
 	sum := float64(0)
 
 	for _, m := range g.InsertionCandidateNodes(feature) {
@@ -98,7 +98,7 @@ func (g *Graph) InsertionCount(key string, feature string) float64 {
 	return sum
 }
 
-func (g *Graph) ReorderingCount(key string, feature string) float64 {
+func (g *Graph) ReorderingCount(feature, key string) float64 {
 	sum := float64(0)
 
 	for _, m := range g.ReorderingCandidateNodes(feature) {
@@ -115,7 +115,7 @@ func (g *Graph) ReorderingCount(key string, feature string) float64 {
 	return sum
 }
 
-func (g *Graph) TranslationCount(key string, feature string) float64 {
+func (g *Graph) TranslationCount(feature, key string) float64 {
 	sum := float64(0)
 
 	for _, m := range g.TranslationCandidateNode(feature) {
