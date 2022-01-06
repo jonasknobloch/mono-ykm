@@ -6,6 +6,7 @@ import (
 	"github.com/jonasknobloch/jinn/pkg/msrpc"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"net/url"
+	"strconv"
 )
 
 var corpus *msrpc.Iterator
@@ -119,10 +120,20 @@ func TrainEM(iterations, samples int) {
 	m.InitInsertionWeights(nDict)
 	m.InitTranslationWeights(tDict)
 
+	nC := NewCount()
+	nR := NewCount()
+	nT := NewCount()
+
 	for i := 0; i < iterations; i++ {
 		fmt.Printf("\nStarting training iteration #%d\n", i)
 
 		initCorpus() // TODO just reset iterator
+
+		fmt.Println("Resetting counts...")
+
+		nC.Reset()
+		nR.Reset()
+		nT.Reset()
 
 		limit := samples
 		counter := 0
@@ -140,12 +151,20 @@ func TrainEM(iterations, samples int) {
 			fmt.Printf("Nodes: %d (%d) Edges: %d\n", len(g.nodes)-len(g.pruned), len(g.nodes), len(g.edges))
 			fmt.Printf("Alpha: %f Beta: %f\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
 
-			fmt.Println("Adjusting model weights...")
+			fmt.Println("Updating counts...")
 
-			m.UpdateWeights(g)
+			nC.ForEach(m.n, g.InsertionCount)
+			nR.ForEach(m.r, g.ReorderingCount)
+			nT.ForEach(m.t, g.TranslationCount)
+
+			g.Draw(strconv.Itoa(i), strconv.Itoa(counter))
 
 			counter++
 		}
+
+		fmt.Println("Adjusting model weights...")
+
+		m.UpdateWeights(nC, nR, nT)
 	}
 }
 

@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
-func (g *Graph) Draw() {
-	f, _ := os.Create("graph.dot")
+func (g *Graph) Draw(stubs ...string) {
+	f, _ := os.Create(fmt.Sprintf("graph_%s.dot", strings.Join(stubs, "-")))
+
 	defer f.Close()
 
 	_, _ = f.WriteString("digraph D {\n")

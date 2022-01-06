@@ -21,11 +21,11 @@ func NewModel() *Model {
 }
 
 func (m *Model) InitInsertionWeights(dictionary map[string]map[string]int) {
-	for key, keys := range dictionary {
-		m.n[key] = make(map[string]float64, len(keys))
+	for feature, keys := range dictionary {
+		m.n[feature] = make(map[string]float64, len(keys))
 
-		for value := range keys {
-			m.n[key][value] = 1 / float64(len(keys))
+		for key := range keys {
+			m.n[feature][key] = 1 / float64(len(keys))
 		}
 	}
 }
@@ -63,58 +63,16 @@ func (m *Model) PTranslation(translation Translation) float64 {
 	return m.t[translation.feature][translation.key]
 }
 
-func (m *Model) UpdateWeights(g *Graph) {
-	sumN := float64(0)
-
-	for feature, keys := range m.n {
-		for key := range keys {
-			sumN += g.InsertionCount(key, feature)
-		}
-	}
-
-	for feature, keys := range m.n {
-		for key := range keys {
-			count := g.InsertionCount(key, feature)
-
-			if count > 0 && sumN > 0 {
-				m.n[feature][key] = count / sumN
+func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount Count) {
+	update := func(p map[string]map[string]float64, c Count) {
+		for feature, keys := range p {
+			for key := range keys {
+				p[feature][key] = c.Get(feature, key) / c.Sum(feature)
 			}
 		}
 	}
 
-	sumR := float64(0)
-
-	for feature, keys := range m.r {
-		for key := range keys {
-			sumR += g.ReorderingCount(key, feature)
-		}
-	}
-
-	for feature, keys := range m.r {
-		for key := range keys {
-			count := g.ReorderingCount(key, feature)
-
-			if count > 0 && sumR > 0 {
-				m.r[feature][key] = count / sumR
-			}
-		}
-	}
-
-	sumT := float64(0)
-
-	for feature, keys := range m.t {
-		for key := range keys {
-			sumT += g.TranslationCount(key, feature)
-		}
-	}
-
-	for feature, keys := range m.t {
-		for key := range keys {
-			count := g.TranslationCount(key, feature)
-
-			if count > 0 && sumT > 0 {
-				m.t[feature][key] = count / sumT
-			}
-		}
-	}
+	update(m.n, insertionCount)
+	update(m.r, reorderingCount)
+	update(m.t, translationCount)
 }
