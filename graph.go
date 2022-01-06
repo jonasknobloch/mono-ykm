@@ -425,3 +425,31 @@ func (g *Graph) Prune(n *Node) {
 		}
 	}
 }
+
+func (g *Graph) removePruned(nodes []*Node) []*Node {
+	result := make([]*Node, 0)
+
+	// TODO modify input slice
+
+	for _, n := range nodes {
+		if _, ok := g.pruned[n]; ok {
+			continue
+		}
+
+		result = append(result, n)
+	}
+
+	return result
+}
+
+func (g *Graph) InsertionCandidateNodes(feature string) []*Node {
+	return g.removePruned(g.insertions[feature])
+}
+
+func (g *Graph) ReorderingCandidateNodes(feature string) []*Node {
+	return g.removePruned(g.reorderings[feature])
+}
+
+func (g *Graph) TranslationCandidateNode(feature string) []*Node {
+	return g.removePruned(g.translations[feature])
+}

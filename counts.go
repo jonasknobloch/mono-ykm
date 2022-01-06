@@ -19,7 +19,7 @@ func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) float64 {
 		sumR := float64(0)
 
 		for _, r := range g.Successor(i) {
-			if len(filter) > 1 && filter[1] != "" && r.n.key != filter[1] {
+			if len(filter) > 1 && filter[1] != "" && r.r.key != filter[1] {
 				continue
 			}
 
@@ -56,10 +56,14 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
 	sumI := float64(0)
 
 	for _, i := range g.Successor(n) {
+		if len(filter) > 0 && i.n.key != filter[0] {
+			continue
+		}
+
 		sumT := float64(0)
 
 		for _, t := range g.Successor(i) {
-			if len(filter) > 0 && t.t.key == filter[0] {
+			if len(filter) > 1 && t.t.key != filter[1] {
 				continue
 			}
 
@@ -75,11 +79,16 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
 func (g *Graph) InsertionCount(key string, feature string) float64 {
 	sum := float64(0)
 
-	for _, m := range g.insertions[feature] {
+	for _, m := range g.InsertionCandidateNodes(feature) {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
-		prod *= g.InsideWeightsInterior(m, key) // TODO support insertions at leafs
+
+		if len(m.tree.Children) == 0 {
+			prod *= g.InsideWeightsTerminal(m, key)
+		} else {
+			prod *= g.InsideWeightsInterior(m, key)
+		}
 
 		prod /= g.Beta(m)
 
@@ -92,7 +101,7 @@ func (g *Graph) InsertionCount(key string, feature string) float64 {
 func (g *Graph) ReorderingCount(key string, feature string) float64 {
 	sum := float64(0)
 
-	for _, m := range g.reorderings[feature] {
+	for _, m := range g.ReorderingCandidateNodes(feature) {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
@@ -109,11 +118,11 @@ func (g *Graph) ReorderingCount(key string, feature string) float64 {
 func (g *Graph) TranslationCount(key string, feature string) float64 {
 	sum := float64(0)
 
-	for _, m := range g.translations[feature] {
+	for _, m := range g.TranslationCandidateNode(feature) {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
-		prod *= g.InsideWeightsTerminal(m, key)
+		prod *= g.InsideWeightsTerminal(m, "", key)
 
 		prod /= g.Beta(m)
 
