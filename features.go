@@ -17,7 +17,11 @@ func nFeature(p, t *tree.Tree) string {
 }
 
 func rFeature(t *tree.Tree) string {
-	f := " "
+	if len(t.Children) == 0 {
+		return ""
+	}
+
+	var f string
 
 	for _, c := range t.Children {
 		f += " " + c.Label
