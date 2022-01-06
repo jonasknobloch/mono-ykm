@@ -151,9 +151,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		panic("unknown feature")
 	}
 
-	// TODO propagate insertion feature for leafs
-
-	if feats[0] != "" && len(n.tree.Children) > 0 {
+	if feats[0] != "" {
 		if _, ok := g.insertions[feats[0]]; !ok {
 			g.insertions[feats[0]] = make([]*Node, 0)
 		}
@@ -161,7 +159,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		g.insertions[feats[0]] = append(g.insertions[feats[0]], n)
 	}
 
-	if feats[1] != "" {
+	if feats[1] != "" && len(n.tree.Children) > 0 {
 		if _, ok := g.reorderings[feats[1]]; !ok {
 			g.reorderings[feats[1]] = make([]*Node, 0)
 		}
@@ -169,12 +167,12 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		g.reorderings[feats[1]] = append(g.reorderings[feats[1]], n)
 	}
 
-	if feats[2] != "" {
+	if feats[2] != "" && len(n.tree.Children) == 0 {
 		if _, ok := g.translations[feats[2]]; !ok {
 			g.translations[feats[2]] = make([]*Node, 0)
 		}
 
-		g.translations[feats[2]] = append(g.reorderings[feats[2]], n)
+		g.translations[feats[2]] = append(g.translations[feats[2]], n)
 	}
 
 	is := make([]Insertion, 0)
