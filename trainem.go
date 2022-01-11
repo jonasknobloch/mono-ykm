@@ -149,7 +149,7 @@ func TrainEM(iterations, samples int) {
 			g := NewGraph(mt, f, m)
 
 			fmt.Printf("Nodes: %d (%d) Edges: %d\n", len(g.nodes)-len(g.pruned), len(g.nodes), len(g.edges))
-			fmt.Printf("Alpha: %f Beta: %f\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
+			fmt.Printf("Alpha: %e Beta: %e\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
 
 			fmt.Println("Updating counts...")
 

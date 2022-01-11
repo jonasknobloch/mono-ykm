@@ -74,7 +74,7 @@ func (g *Graph) Draw(stubs ...string) {
 			continue
 		}
 
-		_, _ = f.WriteString(fmt.Sprintf("  PTR%p -> PTR%p [label=%f]\n", k[0], k[1], v))
+		_, _ = f.WriteString(fmt.Sprintf("  PTR%p -> PTR%p [label=\"%e\"]\n", k[0], k[1], v))
 	}
 
 	_, _ = f.WriteString("}\n")
