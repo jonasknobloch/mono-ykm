@@ -4,8 +4,6 @@ import (
 	"gonum.org/v1/gonum/stat/combin"
 )
 
-// TODO import + export
-
 type Model struct {
 	n map[string]map[string]float64
 	r map[string]map[string]float64
