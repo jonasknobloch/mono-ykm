@@ -118,7 +118,7 @@ func TrainEM(iterations, samples int) {
 
 	fmt.Println("Building dictionaries...")
 
-	nDict, tDict := buildDictionaries()
+	nDict, tDict := buildDictionaries(samples)
 
 	fmt.Println("Initializing weights...")
 
@@ -186,7 +186,7 @@ func TrainEM(iterations, samples int) {
 	}
 }
 
-func buildDictionaries() (map[string]map[string]int, map[string]map[string]int) {
+func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[string]int) {
 	insertions := make(map[string]map[string]int)
 	translations := make(map[string]map[string]int)
 
@@ -202,7 +202,9 @@ func buildDictionaries() (map[string]map[string]int, map[string]map[string]int) 
 		m[f][k]++
 	}
 
-	for corpus.Next() {
+	counter := 0
+
+	for corpus.Next() && (samples == -1 || counter < samples) {
 		sample := corpus.Sample()
 
 		if !sample.Quality {
@@ -232,6 +234,8 @@ func buildDictionaries() (map[string]map[string]int, map[string]map[string]int) 
 				addParameter(translations, t.Feature(), t.Key())
 			}
 		})
+
+		counter++
 	}
 
 	return insertions, translations
