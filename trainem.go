@@ -135,6 +135,10 @@ func TrainEM(iterations, samples int) {
 		nR.Reset()
 		nT.Reset()
 
+		_ = Export(m.n, strconv.Itoa(i), "n")
+		_ = Export(m.r, strconv.Itoa(i), "r")
+		_ = Export(m.t, strconv.Itoa(i), "t")
+
 		limit := samples
 		counter := 0
 
