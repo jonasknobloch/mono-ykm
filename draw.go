@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 func (g *Graph) Draw(stubs ...string) {
-	f, _ := os.Create(fmt.Sprintf("graph_%s.dot", strings.Join(stubs, "-")))
+	name := fmt.Sprintf("graph_%s.dot", strings.Join(stubs, "-"))
+
+	f, _ := os.Create(filepath.Join(Config.GraphExportDirectory, name))
 
 	defer f.Close()
 

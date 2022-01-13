@@ -26,7 +26,7 @@ func init() {
 }
 
 func initCorpus() {
-	c, err := msrpc.NewIterator("test/msr_paraphrase_mock.txt")
+	c, err := msrpc.NewIterator(Config.TrainingDataPath)
 
 	if err != nil {
 		panic(err)
@@ -36,7 +36,7 @@ func initCorpus() {
 }
 
 func initParser() {
-	u, _ := url.Parse("http://localhost:9000")
+	u, _ := url.Parse(Config.CoreNLPUrl)
 
 	c, err := corenlp.NewClient(u, corenlp.Properties{
 		Annotators:   corenlp.Annotators{corenlp.ParserAnnotator},
@@ -51,7 +51,7 @@ func initParser() {
 }
 
 func initTokenizer() {
-	u, _ := url.Parse("http://localhost:9000")
+	u, _ := url.Parse(Config.CoreNLPUrl)
 
 	c, err := corenlp.NewClient(u, corenlp.Properties{
 		Annotators:   corenlp.Annotators{corenlp.WordsToSentencesAnnotator},

@@ -34,5 +34,5 @@ func main() {
 	tCache["α β"] = []string{"α", "β"}
 	tCache["s b a"] = []string{"s", "b", "a"}
 
-	TrainEM(5, -1)
+	TrainEM(Config.TrainingIterationLimit, Config.TrainingIterationLimit)
 }

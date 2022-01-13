@@ -53,7 +53,7 @@ func Insertions(t *tree.Tree, d []string, f string, dict bool) []Operation {
 
 	ops = append(ops, NewInsertion(None, "", f))
 
-	if len(t.Children) == 0 {
+	if !Config.AllowTerminalInsertions && len(t.Children) == 0 {
 		return ops
 	}
 

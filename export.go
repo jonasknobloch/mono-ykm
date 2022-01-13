@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,7 +15,9 @@ func Export(p map[string]map[string]float64, stubs ...string) error {
 		return nil
 	}
 
-	f, err := os.Create(fmt.Sprintf("model_%s.tsv", strings.Join(stubs, "-")))
+	name := fmt.Sprintf("model_%s.tsv", strings.Join(stubs, "-"))
+
+	f, err := os.Create(filepath.Join(Config.ModelExportDirectory, name))
 
 	if err != nil {
 		return fmt.Errorf("error creating file: %w", err)
