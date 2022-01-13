@@ -144,10 +144,9 @@ func TrainEM(iterations, samples int) {
 		_ = Export(m.r, strconv.Itoa(i), "r")
 		_ = Export(m.t, strconv.Itoa(i), "t")
 
-		limit := samples
 		counter := 0
 
-		for corpus.Next() && (limit == -1 || counter < limit) {
+		for corpus.Next() && (samples == -1 || counter < samples) {
 			sample := corpus.Sample()
 
 			fmt.Printf("Analyzing sample #%d\n", counter)
