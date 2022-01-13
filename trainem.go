@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/corenlp"
 	"github.com/jonasknobloch/jinn/pkg/msrpc"
@@ -102,7 +103,11 @@ func parse(str string) (*MetaTree, error) {
 			return nil, err
 		}
 
-		pCache[str] = NewMetaTree(tr)
+		if len(tr.Children) != 1 && tr.Label != "ROOT" {
+			return nil, errors.New("unexpected tree structure")
+		}
+
+		pCache[str] = NewMetaTree(tr.Children[0])
 	}
 
 	return pCache[str], nil
@@ -147,8 +152,17 @@ func TrainEM(iterations, samples int) {
 
 			fmt.Printf("Analyzing sample #%d\n", counter)
 
-			mt, _ := parse(sample.String1)
-			f, _ := tokenize(sample.String2)
+			mt, err := parse(sample.String1)
+
+			if err != nil {
+				panic(err)
+			}
+
+			f, err := tokenize(sample.String2)
+
+			if err != nil {
+				panic(err)
+			}
 
 			g := NewGraph(mt, f, m)
 
@@ -197,8 +211,17 @@ func buildDictionaries() (map[string]map[string]int, map[string]map[string]int) 
 
 		// TODO consider both directions
 
-		mt, _ := parse(sample.String1)
-		e, _ := tokenize(sample.String2)
+		mt, err := parse(sample.String1)
+
+		if err != nil {
+			panic(err)
+		}
+
+		e, err := tokenize(sample.String2)
+
+		if err != nil {
+			panic(err)
+		}
 
 		mt.Tree.Walk(func(st *tree.Tree) {
 			for _, i := range Insertions(st, e, mt.meta[st][0], true) {
