@@ -175,31 +175,9 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		g.translations[feats[2]] = append(g.translations[feats[2]], n)
 	}
 
-	is := make([]Insertion, 0)
+	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], feats[InsertionFeature], false) {
+		insertion := op.(Insertion)
 
-	is = append(is, NewInsertion(None, "", feats[InsertionFeature]))
-
-	if len(n.tree.Children) > 0 && n.l > 0 {
-		if _, ok := m.n[feats[InsertionFeature]][string(Left)+" "+n.f[n.k]]; ok {
-			is = append(is, NewInsertion(Left, n.f[n.k], feats[InsertionFeature]))
-		}
-	}
-
-	if len(n.tree.Children) > 0 && n.l == 1 {
-		if _, ok := m.n[feats[InsertionFeature]][string(Right)+" "+n.f[n.k]]; ok {
-			is = append(is, NewInsertion(Right, n.f[n.k], feats[InsertionFeature]))
-		}
-	}
-
-	if len(n.tree.Children) > 0 && n.l > 1 {
-		if _, ok := m.n[feats[InsertionFeature]][string(Right)+" "+n.f[n.k+n.l-1]]; ok {
-			is = append(is, NewInsertion(Right, n.f[n.k+n.l-1], feats[InsertionFeature]))
-		}
-	}
-
-	// TODO refactor insertion generation into insertions function
-
-	for _, insertion := range is {
 		k := n.k
 		l := n.l
 

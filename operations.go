@@ -48,12 +48,19 @@ func (i Insertion) Feature() string {
 	return i.feature
 }
 
-func Insertions(t *tree.Tree, d []string, f string) []Operation {
+func Insertions(t *tree.Tree, d []string, f string, dict bool) []Operation {
 	ops := make([]Operation, 0)
 
 	ops = append(ops, NewInsertion(None, "", f))
 
 	if len(t.Children) == 0 {
+		return ops
+	}
+
+	if !dict && len(d) > 0 {
+		ops = append(ops, NewInsertion(Left, d[0], f))
+		ops = append(ops, NewInsertion(Right, d[len(d)-1], f))
+
 		return ops
 	}
 

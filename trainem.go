@@ -201,7 +201,7 @@ func buildDictionaries() (map[string]map[string]int, map[string]map[string]int) 
 		e, _ := tokenize(sample.String2)
 
 		mt.Tree.Walk(func(st *tree.Tree) {
-			for _, i := range Insertions(st, e, mt.meta[st][0]) {
+			for _, i := range Insertions(st, e, mt.meta[st][0], true) {
 				addParameter(insertions, i.Feature(), i.Key())
 			}
 
