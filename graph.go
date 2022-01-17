@@ -10,7 +10,6 @@ type Graph struct {
 	edges  map[[2]*Node]float64
 	pred   map[*Node][]*Node
 	succ   map[*Node][]*Node
-	major  map[*Node]*Node
 	pAlpha map[*Node]float64
 	pBeta  map[*Node]float64
 	pruned map[*Node]struct{}
@@ -29,7 +28,6 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		edges:  make(map[[2]*Node]float64),
 		pred:   make(map[*Node][]*Node),
 		succ:   make(map[*Node][]*Node),
-		major:  make(map[*Node]*Node), // partitioning -> parent major
 		pAlpha: make(map[*Node]float64),
 		pBeta:  make(map[*Node]float64),
 		pruned: make(map[*Node]struct{}),
@@ -252,8 +250,6 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 				g.AddNode(p)
 				g.AddEdge(r, p, 1)
 
-				g.major[p] = n
-
 				k := r.k
 
 				for i := 0; i < len(r.tree.Children); i++ {
@@ -303,28 +299,34 @@ func (g *Graph) Alpha(n *Node) float64 {
 		return float64(1)
 	}
 
+	singleton := func(set []*Node) *Node {
+		if len(set) != 1 {
+			panic("unexpected set length")
+		}
+
+		return set[0]
+	}
+
 	sum := float64(0)
 
-	for _, parent := range g.Predecessor(n) {
-		mp := g.major[parent]
-		prod := g.Alpha(mp)
+	for _, partitioning := range g.Predecessor(n) {
+		prod := float64(1)
 
-		for _, i := range g.Successor(mp) {
-			prod *= g.edges[[2]*Node{mp, i}]
+		reordering := singleton(g.Predecessor(partitioning))
+		insertion := singleton(g.Predecessor(reordering))
+		major := singleton(g.Predecessor(insertion))
 
-			for _, r := range g.Successor(i) {
-				prod *= g.edges[[2]*Node{i, r}]
+		prod *= g.Alpha(major)
 
-				for _, p := range g.Successor(r) {
-					for _, m := range g.Successor(p) {
-						if m == n {
-							continue
-						}
+		prod *= g.edges[[2]*Node{major, insertion}]
+		prod *= g.edges[[2]*Node{insertion, reordering}]
 
-						prod *= g.Beta(m)
-					}
-				}
+		for _, sibling := range g.Successor(partitioning) {
+			if sibling == n {
+				continue
 			}
+
+			prod *= g.Beta(sibling)
 		}
 
 		sum += prod
@@ -332,7 +334,7 @@ func (g *Graph) Alpha(n *Node) float64 {
 
 	g.pAlpha[n] = sum
 
-	return sum
+	return g.pAlpha[n]
 }
 
 func (g *Graph) Beta(n *Node) float64 {
