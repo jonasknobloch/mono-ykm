@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 )
 
@@ -17,6 +18,8 @@ type Graph struct {
 	insertions   map[string][]*Node // feature -> MajorNode
 	reorderings  map[string][]*Node // feature -> MajorNode
 	translations map[string][]*Node // feature -> MajorNode
+
+	major map[*tree.Tree]map[string]*Node
 }
 
 func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
@@ -35,6 +38,8 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		insertions:   make(map[string][]*Node),
 		reorderings:  make(map[string][]*Node),
 		translations: make(map[string][]*Node),
+
+		major: make(map[*tree.Tree]map[string]*Node),
 	}
 
 	g.AddNode(n)
@@ -48,40 +53,6 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		if g.edges[[2]*Node{g.pred[node][0], node}] == 0 {
 			g.Prune(node)
 		}
-	}
-
-	for _, node := range g.nodes {
-		if node.nType != MajorNode || node == g.root {
-			continue
-		}
-
-		if _, ok := g.pruned[node]; ok {
-			continue
-		}
-
-		orphan := true
-
-		for _, p := range g.pred[node] {
-			if _, ok := g.pruned[p]; !ok {
-				orphan = false
-				break
-			}
-		}
-
-		if !orphan {
-			continue
-		}
-
-		var pruneOrphan func(o *Node)
-		pruneOrphan = func(o *Node) {
-			g.pruned[o] = struct{}{}
-
-			for _, s := range g.succ[o] {
-				pruneOrphan(s)
-			}
-		}
-
-		pruneOrphan(node)
 	}
 
 	g.Beta(n)
@@ -103,17 +74,21 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 
 func (g *Graph) AddNode(n *Node) {
 	g.nodes = append(g.nodes, n)
+
+	if len(g.nodes) > 0 && len(g.nodes)%1000000 == 0 {
+		fmt.Printf("%d\n", len(g.nodes))
+	}
 }
 
 func (g *Graph) AddEdge(n1, n2 *Node, w float64) {
 	g.edges[[2]*Node{n1, n2}] = w
 
-	if g.pred[n2] == nil {
+	if _, ok := g.pred[n2]; !ok {
 		g.pred[n2] = make([]*Node, 0)
 	}
 
-	if g.succ[n1] == nil {
-		g.succ[n2] = make([]*Node, 0)
+	if _, ok := g.succ[n1]; !ok {
+		g.succ[n1] = make([]*Node, 0)
 	}
 
 	g.pred[n2] = append(g.pred[n2], n1)
@@ -141,8 +116,6 @@ func partitionings(n, k int) [][]int {
 }
 
 func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
-	major := make(map[*tree.Tree]map[string]*Node)
-
 	feats, ok := fm[n.tree]
 
 	if !ok {
@@ -255,11 +228,11 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 				for i := 0; i < len(r.tree.Children); i++ {
 					c := r.tree.Children[p.r.Reordering[i]]
 
-					if _, ok := major[c]; !ok {
-						major[c] = make(map[string]*Node)
+					if _, ok := g.major[c]; !ok {
+						g.major[c] = make(map[string]*Node)
 					}
 
-					m := &Node{
+					major := &Node{
 						tree:  c,
 						f:     p.f,
 						k:     k,
@@ -269,21 +242,18 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 
 					k += partitioning[i]
 
-					sub := m.Substring()
-					if _, ok := major[c][sub]; !ok {
-						major[c][sub] = m
-						g.AddNode(m)
+					sub := major.Substring()
+
+					if _, ok := g.major[c][sub]; !ok {
+						g.major[c][sub] = major
+
+						g.AddNode(major)
+						g.Expand(major, m, fm)
 					}
 
-					g.AddEdge(p, major[c][sub], 1)
+					g.AddEdge(p, g.major[c][sub], 1)
 				}
 			}
-		}
-	}
-
-	for _, v := range major {
-		for _, node := range v {
-			g.Expand(node, m, fm)
 		}
 	}
 }
@@ -383,26 +353,19 @@ func (g *Graph) Prune(n *Node) {
 	g.pruned[n] = struct{}{}
 
 	if n.nType == MajorNode {
-		for _, p := range g.pred[n] {
+		for _, p := range g.Predecessor(n) {
 			g.Prune(p)
 		}
 
 		return
 	}
 
-	for _, p := range g.pred[n] {
-		prune := true
-
-		for _, s := range g.succ[p] {
-			if _, ok := g.pruned[s]; !ok {
-				prune = false
-				break
-			}
+	for _, p := range g.Predecessor(n) {
+		if len(g.Successor(p)) > 0 {
+			continue
 		}
 
-		if prune {
-			g.Prune(p)
-		}
+		g.Prune(p)
 	}
 }
 
