@@ -125,11 +125,14 @@ func TrainEM(iterations, samples int) {
 	m.InitInsertionWeights(nDict)
 	m.InitTranslationWeights(tDict)
 
+	_ = Export(m.n, strconv.Itoa(0), "n")
+	_ = Export(m.t, strconv.Itoa(0), "t")
+
 	nC := NewCount()
 	nR := NewCount()
 	nT := NewCount()
 
-	for i := 0; i < iterations; i++ {
+	for i := 1; i < iterations+1; i++ {
 		fmt.Printf("\nStarting training iteration #%d\n", i)
 
 		initCorpus() // TODO just reset iterator
@@ -139,10 +142,6 @@ func TrainEM(iterations, samples int) {
 		nC.Reset()
 		nR.Reset()
 		nT.Reset()
-
-		_ = Export(m.n, strconv.Itoa(i), "n")
-		_ = Export(m.r, strconv.Itoa(i), "r")
-		_ = Export(m.t, strconv.Itoa(i), "t")
 
 		counter := 0
 
@@ -182,6 +181,10 @@ func TrainEM(iterations, samples int) {
 		fmt.Println("Adjusting model weights...")
 
 		m.UpdateWeights(nC, nR, nT)
+
+		_ = Export(m.n, strconv.Itoa(i), "n")
+		_ = Export(m.r, strconv.Itoa(i), "r")
+		_ = Export(m.t, strconv.Itoa(i), "t")
 	}
 }
 
