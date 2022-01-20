@@ -166,6 +166,14 @@ func TrainEM(iterations, samples int) {
 
 			g := NewGraph(mt, f, m)
 
+			if err := g.ValidateEdges(); err != nil {
+				fmt.Printf("Edge validation failed: %s\n", err)
+			}
+
+			if orphans := g.Orphans(); len(orphans) > 0 {
+				fmt.Printf("Unexpected orphan nodes: %d\n", len(orphans))
+			}
+
 			fmt.Printf("Nodes: %d (%d) Edges: %d\n", len(g.nodes)-len(g.pruned), len(g.nodes), len(g.edges))
 			fmt.Printf("Alpha: %e Beta: %e\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
 
