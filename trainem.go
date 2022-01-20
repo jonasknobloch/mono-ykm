@@ -162,6 +162,8 @@ func TrainEM(iterations, samples int) {
 				panic(err)
 			}
 
+			fmt.Printf("Complexity estimation: %d\n", O(mt.Tree, len(f)))
+
 			g := NewGraph(mt, f, m)
 
 			fmt.Printf("Nodes: %d (%d) Edges: %d\n", len(g.nodes)-len(g.pruned), len(g.nodes), len(g.edges))
