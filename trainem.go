@@ -132,7 +132,11 @@ func TrainEM(iterations, samples int) {
 	nR := NewCount()
 	nT := NewCount()
 
+	watch := NewStopWatch()
+
 	for i := 1; i < iterations+1; i++ {
+		watch.Start()
+
 		fmt.Printf("\nStarting training iteration #%d\n", i)
 
 		initCorpus() // TODO just reset iterator
@@ -142,6 +146,8 @@ func TrainEM(iterations, samples int) {
 		nC.Reset()
 		nR.Reset()
 		nT.Reset()
+
+		watch.Lap("init")
 
 		counter := 0
 
@@ -188,13 +194,24 @@ func TrainEM(iterations, samples int) {
 			counter++
 		}
 
+		watch.Lap("counter")
+
 		fmt.Println("Adjusting model weights...")
 
 		m.UpdateWeights(nC, nR, nT)
 
+		watch.Lap("weights")
+
 		_ = Export(m.n, strconv.Itoa(i), "n")
 		_ = Export(m.r, strconv.Itoa(i), "r")
 		_ = Export(m.t, strconv.Itoa(i), "t")
+
+		watch.Lap("export")
+		watch.Stop()
+
+		fmt.Printf("%s", watch)
+
+		watch.Reset()
 	}
 }
 
