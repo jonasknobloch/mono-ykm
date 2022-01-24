@@ -13,10 +13,14 @@ var Config = struct {
 	CoreNLPUrl              string
 	GraphExportDirectory    string
 	ModelExportDirectory    string
+	ValidateEdges           bool
+	CountOrphans            bool
 }{
 	AllowTerminalInsertions: false,
 	TrainingIterationLimit:  1,
 	TrainingSampleLimit:     -1,
+	ValidateEdges:           false,
+	CountOrphans:            false,
 }
 
 func init() {
@@ -57,6 +61,18 @@ func init() {
 	}
 
 	ensureDirectoryExists(Config.ModelExportDirectory)
+
+	if val, ok := os.LookupEnv("VALIDATE_EDGES"); ok {
+		if b, err := strconv.ParseBool(val); err == nil {
+			Config.ValidateEdges = b
+		}
+	}
+
+	if val, ok := os.LookupEnv("COUNT_ORPHANS"); ok {
+		if b, err := strconv.ParseBool(val); err == nil {
+			Config.CountOrphans = b
+		}
+	}
 }
 
 func ensureDirectoryExists(name string) {
