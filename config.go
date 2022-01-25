@@ -15,64 +15,61 @@ var Config = struct {
 	ModelExportDirectory    string
 	ValidateEdges           bool
 	CountOrphans            bool
-}{
-	AllowTerminalInsertions: false,
-	TrainingIterationLimit:  1,
-	TrainingSampleLimit:     -1,
-	ValidateEdges:           false,
-	CountOrphans:            false,
-}
+}{}
 
 func init() {
-	if val, ok := os.LookupEnv("ALLOW_TERMINAL_INSERTIONS"); ok {
-		if b, err := strconv.ParseBool(val); err == nil {
-			Config.AllowTerminalInsertions = b
-		}
-	}
+	Config.AllowTerminalInsertions, _, _ = parseEnvBool("ALLOW_TERMINAL_INSERTIONS", false)
 
-	if val, ok := os.LookupEnv("TRAINING_DATA_PATH"); ok {
-		Config.TrainingDataPath = val
-	}
+	Config.TrainingDataPath, _ = parseEnvString("TRAINING_DATA_PATH", "")
+	Config.TrainingIterationLimit, _, _ = parseEnvInt("TRAINING_ITERATION_LIMIT", 1)
+	Config.TrainingSampleLimit, _, _ = parseEnvInt("TRAINING_SAMPLE_LIMIT", -1)
 
-	if val, ok := os.LookupEnv("TRAINING_ITERATION_LIMIT"); ok {
-		if i, err := strconv.Atoi(val); err == nil {
-			Config.TrainingIterationLimit = i
-		}
-	}
+	Config.CoreNLPUrl, _ = parseEnvString("CORE_NLP_URL", "")
 
-	if val, ok := os.LookupEnv("TRAINING_SAMPLE_LIMIT"); ok {
-		if i, err := strconv.Atoi(val); err == nil {
-			Config.TrainingSampleLimit = i
-		}
-	}
-
-	if val, ok := os.LookupEnv("CORE_NLP_URL"); ok {
-		Config.CoreNLPUrl = val
-	}
-
-	if val, ok := os.LookupEnv("GRAPH_EXPORT_DIRECTORY"); ok {
-		Config.GraphExportDirectory = val
-	}
+	Config.GraphExportDirectory, _ = parseEnvString("GRAPH_EXPORT_DIRECTORY", "")
+	Config.ModelExportDirectory, _ = parseEnvString("MODEL_EXPORT_DIRECTORY", "")
 
 	ensureDirectoryExists(Config.GraphExportDirectory)
-
-	if val, ok := os.LookupEnv("MODEL_EXPORT_DIRECTORY"); ok {
-		Config.ModelExportDirectory = val
-	}
-
 	ensureDirectoryExists(Config.ModelExportDirectory)
 
-	if val, ok := os.LookupEnv("VALIDATE_EDGES"); ok {
-		if b, err := strconv.ParseBool(val); err == nil {
-			Config.ValidateEdges = b
-		}
+	Config.ValidateEdges, _, _ = parseEnvBool("VALIDATE_EDGES", false)
+	Config.CountOrphans, _, _ = parseEnvBool("COUNT_ORPHANS", false)
+}
+
+func parseEnvString(key, def string) (string, bool) {
+	if val, ok := os.LookupEnv(key); ok {
+		return val, ok
 	}
 
-	if val, ok := os.LookupEnv("COUNT_ORPHANS"); ok {
-		if b, err := strconv.ParseBool(val); err == nil {
-			Config.CountOrphans = b
+	return def, false
+}
+
+func parseEnvInt(key string, def int) (int, bool, error) {
+	if val, ok := os.LookupEnv(key); ok {
+		i, err := strconv.Atoi(val)
+
+		if err != nil {
+			return def, false, err
 		}
+
+		return i, ok, nil
 	}
+
+	return def, false, nil
+}
+
+func parseEnvBool(key string, def bool) (bool, bool, error) {
+	if val, ok := os.LookupEnv(key); ok {
+		b, err := strconv.ParseBool(val)
+
+		if err != nil {
+			return def, false, err
+		}
+
+		return b, ok, nil
+	}
+
+	return def, false, nil
 }
 
 func ensureDirectoryExists(name string) {
