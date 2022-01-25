@@ -84,7 +84,11 @@ func (g *Graph) AddEdge(n1, n2 *Node, w float64) {
 	g.edges[[2]*Node{n1, n2}] = w
 
 	if _, ok := g.pred[n2]; !ok {
-		g.pred[n2] = make([]*Node, 0)
+		if n2.nType == MajorNode {
+			g.pred[n2] = make([]*Node, 0)
+		} else {
+			g.pred[n2] = make([]*Node, 0, 1)
+		}
 	}
 
 	if _, ok := g.succ[n1]; !ok {
@@ -269,22 +273,14 @@ func (g *Graph) Alpha(n *Node) float64 {
 		return float64(1)
 	}
 
-	singleton := func(set []*Node) *Node {
-		if len(set) != 1 {
-			panic("unexpected set length")
-		}
-
-		return set[0]
-	}
-
 	sum := float64(0)
 
 	for _, partitioning := range g.Predecessor(n) {
 		prod := float64(1)
 
-		reordering := singleton(g.Predecessor(partitioning))
-		insertion := singleton(g.Predecessor(reordering))
-		major := singleton(g.Predecessor(insertion))
+		reordering := g.pred[partitioning][0]
+		insertion := g.pred[reordering][0]
+		major := g.pred[insertion][0]
 
 		prod *= g.Alpha(major)
 
@@ -358,12 +354,8 @@ func (g *Graph) Prune(n *Node) {
 		return
 	}
 
-	for _, p := range g.Predecessor(n) {
-		if len(g.Successor(p)) > 0 {
-			continue
-		}
-
-		g.Prune(p)
+	if len(g.Successor(g.pred[n][0])) == 0 {
+		g.Prune(g.pred[n][0])
 	}
 }
 
