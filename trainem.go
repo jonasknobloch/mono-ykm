@@ -154,6 +154,10 @@ func TrainEM(iterations, samples int) {
 		counter := 0
 
 		for corpus.Next() && (samples == -1 || counter < samples) {
+			if !corpus.Sample().Quality {
+				continue
+			}
+
 			sample := corpus.Sample()
 
 			fmt.Printf("Analyzing sample #%d\n", counter)
