@@ -18,8 +18,12 @@ func (g *Graph) ValidateEdges() error {
 	}
 
 	for k := range g.edges {
-		if !inSlice(g.succ[k[0]], k[1]) {
-			return errors.New("edge not in successors")
+		if _, ok := g.pruned[k[0]]; !ok {
+			if _, ok := g.pruned[k[1]]; !ok {
+				if _, ok := g.succ[k[0]][k[1]]; !ok {
+					return errors.New("edge not in successors")
+				}
+			}
 		}
 
 		if !inSlice(g.pred[k[1]], k[0]) {

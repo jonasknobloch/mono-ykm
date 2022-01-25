@@ -11,24 +11,24 @@ func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) float64 {
 
 	sumI := float64(0)
 
-	for _, i := range g.Successor(n) {
+	for i := range g.Successor(n) {
 		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
 			continue
 		}
 
 		sumR := float64(0)
 
-		for _, r := range g.Successor(i) {
+		for r := range g.Successor(i) {
 			if len(filter) > 1 && filter[1] != "" && r.r.key != filter[1] {
 				continue
 			}
 
 			sumP := float64(0)
 
-			for _, p := range g.Successor(r) {
+			for p := range g.Successor(r) {
 				prod := float64(1)
 
-				for _, m := range g.Successor(p) {
+				for m := range g.Successor(p) {
 					prod *= g.Beta(m)
 				}
 
@@ -55,14 +55,14 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
 
 	sumI := float64(0)
 
-	for _, i := range g.Successor(n) {
+	for i := range g.Successor(n) {
 		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
 			continue
 		}
 
 		sumT := float64(0)
 
-		for _, t := range g.Successor(i) {
+		for t := range g.Successor(i) {
 			if len(filter) > 1 && filter[1] != "" && t.t.key != filter[1] {
 				continue
 			}

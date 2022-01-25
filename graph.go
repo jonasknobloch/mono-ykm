@@ -10,7 +10,7 @@ type Graph struct {
 	nodes  []*Node
 	edges  map[[2]*Node]float64
 	pred   map[*Node][]*Node
-	succ   map[*Node][]*Node
+	succ   map[*Node]map[*Node]struct{}
 	pAlpha map[*Node]float64
 	pBeta  map[*Node]float64
 	pruned map[*Node]struct{}
@@ -30,7 +30,7 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		nodes:  make([]*Node, 0),
 		edges:  make(map[[2]*Node]float64),
 		pred:   make(map[*Node][]*Node),
-		succ:   make(map[*Node][]*Node),
+		succ:   make(map[*Node]map[*Node]struct{}),
 		pAlpha: make(map[*Node]float64),
 		pBeta:  make(map[*Node]float64),
 		pruned: make(map[*Node]struct{}),
@@ -88,11 +88,11 @@ func (g *Graph) AddEdge(n1, n2 *Node, w float64) {
 	}
 
 	if _, ok := g.succ[n1]; !ok {
-		g.succ[n1] = make([]*Node, 0)
+		g.succ[n1] = make(map[*Node]struct{})
 	}
 
 	g.pred[n2] = append(g.pred[n2], n1)
-	g.succ[n1] = append(g.succ[n1], n2)
+	g.succ[n1][n2] = struct{}{}
 }
 
 func partitionings(n, k int) [][]int {
@@ -291,7 +291,7 @@ func (g *Graph) Alpha(n *Node) float64 {
 		prod *= g.edges[[2]*Node{major, insertion}]
 		prod *= g.edges[[2]*Node{insertion, reordering}]
 
-		for _, sibling := range g.Successor(partitioning) {
+		for sibling := range g.Successor(partitioning) {
 			if sibling == n {
 				continue
 			}
@@ -321,18 +321,16 @@ func (g *Graph) Beta(n *Node) float64 {
 	return g.pBeta[n]
 }
 
-func (g *Graph) Successor(n *Node) []*Node {
-	succ := make([]*Node, 0)
-
-	for _, s := range g.succ[n] {
-		if _, ok := g.pruned[s]; ok {
+func (g *Graph) Successor(n *Node) map[*Node]struct{} {
+	for s := range g.succ[n] {
+		if _, ok := g.pruned[s]; !ok {
 			continue
 		}
 
-		succ = append(succ, s)
+		delete(g.succ[n], s)
 	}
 
-	return succ
+	return g.succ[n]
 }
 
 func (g *Graph) Predecessor(n *Node) []*Node {
