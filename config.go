@@ -11,6 +11,8 @@ var Config = struct {
 	TrainingIterationLimit  int
 	TrainingSampleLimit     int
 	CoreNLPUrl              string
+	ExportGraphs            bool
+	ExportModel             bool
 	GraphExportDirectory    string
 	ModelExportDirectory    string
 	ValidateEdges           bool
@@ -25,6 +27,9 @@ func init() {
 	Config.TrainingSampleLimit, _, _ = parseEnvInt("TRAINING_SAMPLE_LIMIT", -1)
 
 	Config.CoreNLPUrl, _ = parseEnvString("CORE_NLP_URL", "")
+
+	Config.ExportGraphs, _, _ = parseEnvBool("EXPORT_GRAPHS", false)
+	Config.ExportModel, _, _ = parseEnvBool("EXPORT_MODEL", true)
 
 	Config.GraphExportDirectory, _ = parseEnvString("GRAPH_EXPORT_DIRECTORY", "")
 	Config.ModelExportDirectory, _ = parseEnvString("MODEL_EXPORT_DIRECTORY", "")

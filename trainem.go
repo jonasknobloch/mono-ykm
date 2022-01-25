@@ -125,8 +125,10 @@ func TrainEM(iterations, samples int) {
 	m.InitInsertionWeights(nDict)
 	m.InitTranslationWeights(tDict)
 
-	_ = Export(m.n, strconv.Itoa(0), "n")
-	_ = Export(m.t, strconv.Itoa(0), "t")
+	if Config.ExportModel {
+		_ = Export(m.n, strconv.Itoa(0), "n")
+		_ = Export(m.t, strconv.Itoa(0), "t")
+	}
 
 	nC := NewCount()
 	nR := NewCount()
@@ -193,7 +195,9 @@ func TrainEM(iterations, samples int) {
 			nR.ForEach(m.r, g.ReorderingCount)
 			nT.ForEach(m.t, g.TranslationCount)
 
-			g.Draw(strconv.Itoa(i), strconv.Itoa(counter))
+			if Config.ExportGraphs {
+				g.Draw(strconv.Itoa(i), strconv.Itoa(counter))
+			}
 
 			counter++
 		}
@@ -206,11 +210,14 @@ func TrainEM(iterations, samples int) {
 
 		watch.Lap("weights")
 
-		_ = Export(m.n, strconv.Itoa(i), "n")
-		_ = Export(m.r, strconv.Itoa(i), "r")
-		_ = Export(m.t, strconv.Itoa(i), "t")
+		if Config.ExportModel {
+			_ = Export(m.n, strconv.Itoa(i), "n")
+			_ = Export(m.r, strconv.Itoa(i), "r")
+			_ = Export(m.t, strconv.Itoa(i), "t")
 
-		watch.Lap("export")
+			watch.Lap("export")
+		}
+
 		watch.Stop()
 
 		fmt.Printf("%s", watch)
