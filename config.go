@@ -11,6 +11,7 @@ var Config = struct {
 	TrainingIterationLimit  int
 	TrainingSampleLimit     int
 	CoreNLPUrl              string
+	TreeMockDataPath        string
 	ExportGraphs            bool
 	ExportModel             bool
 	GraphExportDirectory    string
@@ -27,6 +28,7 @@ func init() {
 	Config.TrainingSampleLimit, _, _ = parseEnvInt("TRAINING_SAMPLE_LIMIT", -1)
 
 	Config.CoreNLPUrl, _ = parseEnvString("CORE_NLP_URL", "")
+	Config.TreeMockDataPath, _ = parseEnvString("TREE_MOCK_DATA_PATH", "")
 
 	Config.ExportGraphs, _, _ = parseEnvBool("EXPORT_GRAPHS", false)
 	Config.ExportModel, _, _ = parseEnvBool("EXPORT_MODEL", true)

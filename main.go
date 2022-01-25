@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/jonasknobloch/jinn/pkg/tree"
 	"log"
 	"os"
 	"runtime/pprof"
@@ -26,32 +25,6 @@ func main() {
 
 		defer pprof.StopCPUProfile()
 	}
-
-	tr := &tree.Tree{
-		Label: "σ",
-		Children: []*tree.Tree{
-			{
-				Label: "γ",
-				Children: []*tree.Tree{
-					{
-						Label:    "α",
-						Children: nil,
-					},
-				},
-			},
-			{
-				Label: "γ",
-				Children: []*tree.Tree{
-					{
-						Label:    "β",
-						Children: nil,
-					},
-				},
-			},
-		},
-	}
-
-	pCache["α β"] = NewMetaTree(tr)
 
 	TrainEM(Config.TrainingIterationLimit, Config.TrainingSampleLimit)
 }

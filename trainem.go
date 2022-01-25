@@ -1,12 +1,16 @@
 package main
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/corenlp"
 	"github.com/jonasknobloch/jinn/pkg/msrpc"
 	"github.com/jonasknobloch/jinn/pkg/tree"
+	"io"
+	"log"
 	"net/url"
+	"os"
 	"strconv"
 )
 
@@ -113,7 +117,58 @@ func parse(str string) (*MetaTree, error) {
 	return pCache[str], nil
 }
 
+func importTrees(name string) error {
+	var r *csv.Reader
+
+	if f, err := os.Open(name); err != nil {
+		return fmt.Errorf("error opening file: %w", err)
+	} else {
+		r = csv.NewReader(f)
+		defer f.Close()
+	}
+
+	r.Comma = '\t'
+
+	_, err := r.Read()
+
+	if err != nil {
+		return err
+	}
+
+	dec := tree.NewDecoder()
+
+	for {
+		record, err := r.Read()
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return err
+		}
+
+		tr, err := dec.Decode(record[1])
+
+		if err != nil {
+			return err
+		}
+
+		pCache[record[0]] = NewMetaTree(tr)
+	}
+
+	return nil
+}
+
 func TrainEM(iterations, samples int) {
+	if Config.TreeMockDataPath != "" {
+		err := importTrees(Config.TreeMockDataPath)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	m := NewModel()
 
 	fmt.Println("Building dictionaries...")
