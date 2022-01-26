@@ -238,7 +238,11 @@ func TrainEM(iterations, samples int) {
 				continue
 			}
 
+			watch.Lap(fmt.Sprintf("#%d init", counter))
+
 			g := NewGraph(mt, f, m)
+
+			watch.Lap(fmt.Sprintf("#%d graph", counter))
 
 			if Config.ValidateEdges {
 				if err := g.ValidateEdges(); err != nil {
@@ -255,20 +259,24 @@ func TrainEM(iterations, samples int) {
 			fmt.Printf("Nodes: %d (%d) Edges: %d\n", len(g.nodes)-len(g.pruned), len(g.nodes), len(g.edges))
 			fmt.Printf("Alpha: %e Beta: %e\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
 
+			watch.Lap(fmt.Sprintf("#%d validation", counter))
+
 			fmt.Println("Updating counts...")
 
 			nC.ForEach(m.n, g.InsertionCount)
 			nR.ForEach(m.r, g.ReorderingCount)
 			nT.ForEach(m.t, g.TranslationCount)
 
+			watch.Lap(fmt.Sprintf("#%d count updates", counter))
+
 			if Config.ExportGraphs {
 				g.Draw(strconv.Itoa(i), strconv.Itoa(counter))
 			}
 
+			watch.Lap(fmt.Sprintf("#%d graph export", counter))
+
 			counter++
 		}
-
-		watch.Lap("counter")
 
 		fmt.Println("Adjusting model weights...")
 
@@ -281,7 +289,7 @@ func TrainEM(iterations, samples int) {
 			_ = Export(m.r, strconv.Itoa(i), "r")
 			_ = Export(m.t, strconv.Itoa(i), "t")
 
-			watch.Lap("export")
+			watch.Lap("model export")
 		}
 
 		watch.Stop()

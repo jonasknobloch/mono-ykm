@@ -42,8 +42,14 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		major: make(map[*tree.Tree]map[string]*Node),
 	}
 
+	watch := NewStopWatch()
+
+	watch.Start()
+
 	g.AddNode(n)
 	g.Expand(n, m, mt.meta)
+
+	watch.Lap("expand")
 
 	for _, node := range g.nodes {
 		if node.nType != FinalNode {
@@ -55,7 +61,11 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		}
 	}
 
+	watch.Lap("prune")
+
 	g.Beta(n)
+
+	watch.Lap("beta")
 
 	for _, node := range g.nodes {
 		if node.nType != FinalNode {
@@ -69,15 +79,16 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		g.Alpha(g.pred[g.pred[node][0]][0])
 	}
 
+	watch.Lap("alpha")
+	watch.Stop()
+
+	fmt.Printf("%s", watch)
+
 	return g
 }
 
 func (g *Graph) AddNode(n *Node) {
 	g.nodes = append(g.nodes, n)
-
-	if len(g.nodes) > 0 && len(g.nodes)%1000000 == 0 {
-		fmt.Printf("%d\n", len(g.nodes))
-	}
 }
 
 func (g *Graph) AddEdge(n1, n2 *Node, w float64) {
