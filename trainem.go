@@ -229,7 +229,14 @@ func TrainEM(iterations, samples int) {
 				panic(err)
 			}
 
-			fmt.Printf("Complexity estimation: %d\n", O(mt.Tree, len(f)))
+			c := O(mt.Tree, len(f))
+
+			fmt.Printf("Complexity estimation: %d\n", c)
+
+			if Config.TrainingComplexityLimit != -1 && Config.TrainingComplexityLimit < c {
+				fmt.Println("Skipping sample...")
+				continue
+			}
 
 			g := NewGraph(mt, f, m)
 
@@ -322,6 +329,10 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 
 		if err != nil {
 			panic(err)
+		}
+
+		if Config.TrainingComplexityLimit != -1 && Config.TrainingComplexityLimit < O(mt.Tree, len(e)) {
+			continue
 		}
 
 		mt.Tree.Walk(func(st *tree.Tree) {
