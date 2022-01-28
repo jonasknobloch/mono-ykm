@@ -3,9 +3,12 @@ package main
 import (
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"gonum.org/v1/gonum/stat/combin"
+	"math"
 )
 
-func O(t *tree.Tree, l int) int {
+const intSize = 32 << (^int(0) >> 32 & 1)
+
+func O(t *tree.Tree, l int) (int, bool) {
 	numSubstrings := func(l, k int) int {
 		if k == 0 {
 			return 1
@@ -15,6 +18,7 @@ func O(t *tree.Tree, l int) int {
 	}
 
 	result := 0
+	overflow := false
 
 	k := 0
 	n := numSubstrings(l, 0)
@@ -59,12 +63,22 @@ func O(t *tree.Tree, l int) int {
 				sum += numPartitionings
 			}
 
-			result += sum * n
+			gain := sum * n
+
+			if intSize == 32 && (result > math.MaxInt32-gain || gain > math.MaxInt32-result) {
+				overflow = true
+			}
+
+			if intSize == 64 && (result > math.MaxInt64-gain || gain > math.MaxInt64-result) {
+				overflow = true
+			}
+
+			result += gain
 		})
 
 		k++
 		n = numSubstrings(l, k)
 	}
 
-	return result
+	return result, !overflow
 }
