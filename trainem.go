@@ -215,7 +215,7 @@ func TrainEM(iterations, samples int) {
 
 			sample := corpus.Sample()
 
-			fmt.Printf("Analyzing sample #%d\n", counter)
+			fmt.Printf("Analyzing sample %d_%d (#%d)\n", sample.ID1, sample.ID2, counter)
 
 			mt, err := parse(sample.String1)
 
