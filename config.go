@@ -17,8 +17,6 @@ var Config = struct {
 	ExportModel             bool
 	GraphExportDirectory    string
 	ModelExportDirectory    string
-	ValidateEdges           bool
-	CountOrphans            bool
 }{}
 
 func init() {
@@ -40,9 +38,6 @@ func init() {
 
 	ensureDirectoryExists(Config.GraphExportDirectory)
 	ensureDirectoryExists(Config.ModelExportDirectory)
-
-	Config.ValidateEdges, _, _ = parseEnvBool("VALIDATE_EDGES", false)
-	Config.CountOrphans, _, _ = parseEnvBool("COUNT_ORPHANS", false)
 }
 
 func parseEnvString(key, def string) (string, bool) {

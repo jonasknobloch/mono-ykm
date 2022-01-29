@@ -51,22 +51,33 @@ func (i Insertion) Feature() string {
 func Insertions(t *tree.Tree, d []string, f string, dict bool) []Operation {
 	ops := make([]Operation, 0)
 
-	ops = append(ops, NewInsertion(None, "", f))
+	if dict {
+		ops = append(ops, NewInsertion(None, "", f))
 
-	if !Config.AllowTerminalInsertions && len(t.Children) == 0 {
+		if !Config.AllowTerminalInsertions && len(t.Children) == 0 {
+			return ops
+		}
+
+		for _, w := range d {
+			ops = append(ops, NewInsertion(Left, w, f))
+			ops = append(ops, NewInsertion(Right, w, f))
+		}
+
 		return ops
 	}
 
-	if !dict && len(d) > 0 {
+	none := Config.AllowTerminalInsertions && len(d) < t.Size()+1
+
+	none = none || !Config.AllowTerminalInsertions && len(t.Children) == 0 && len(d) <= t.Size()
+	none = none || !Config.AllowTerminalInsertions && len(t.Children) != 0 && len(d) < t.Size()
+
+	if none {
+		ops = append(ops, NewInsertion(None, "", f))
+	}
+
+	if (Config.AllowTerminalInsertions || len(t.Children) != 0) && len(d) > 0 {
 		ops = append(ops, NewInsertion(Left, d[0], f))
 		ops = append(ops, NewInsertion(Right, d[len(d)-1], f))
-
-		return ops
-	}
-
-	for _, w := range d {
-		ops = append(ops, NewInsertion(Left, w, f))
-		ops = append(ops, NewInsertion(Right, w, f))
 	}
 
 	return ops

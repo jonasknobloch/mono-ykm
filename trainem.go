@@ -244,19 +244,7 @@ func TrainEM(iterations, samples int) {
 
 			watch.Lap(fmt.Sprintf("#%d graph", counter))
 
-			if Config.ValidateEdges {
-				if err := g.ValidateEdges(); err != nil {
-					fmt.Printf("Edge validation failed: %s\n", err)
-				}
-			}
-
-			if Config.CountOrphans {
-				if orphans := g.Orphans(); len(orphans) > 0 {
-					fmt.Printf("Unexpected orphan nodes: %d\n", len(orphans))
-				}
-			}
-
-			fmt.Printf("Nodes: %d (%d) Edges: %d\n", len(g.nodes)-len(g.pruned), len(g.nodes), len(g.edges))
+			fmt.Printf("Nodes: %d Edges: %d\n", len(g.nodes), len(g.edges))
 			fmt.Printf("Alpha: %e Beta: %e\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
 
 			watch.Lap(fmt.Sprintf("#%d validation", counter))

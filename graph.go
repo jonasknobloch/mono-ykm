@@ -10,10 +10,9 @@ type Graph struct {
 	nodes  []*Node
 	edges  map[[2]*Node]float64
 	pred   map[*Node][]*Node
-	succ   map[*Node]map[*Node]struct{}
+	succ   map[*Node][]*Node
 	pAlpha map[*Node]float64
 	pBeta  map[*Node]float64
-	pruned map[*Node]struct{}
 
 	insertions   map[string][]*Node // feature -> MajorNode
 	reorderings  map[string][]*Node // feature -> MajorNode
@@ -30,10 +29,9 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		nodes:  make([]*Node, 0),
 		edges:  make(map[[2]*Node]float64),
 		pred:   make(map[*Node][]*Node),
-		succ:   make(map[*Node]map[*Node]struct{}),
+		succ:   make(map[*Node][]*Node),
 		pAlpha: make(map[*Node]float64),
 		pBeta:  make(map[*Node]float64),
-		pruned: make(map[*Node]struct{}),
 
 		insertions:   make(map[string][]*Node),
 		reorderings:  make(map[string][]*Node),
@@ -51,28 +49,12 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 
 	watch.Lap("expand")
 
-	for _, node := range g.nodes {
-		if node.nType != FinalNode {
-			continue
-		}
-
-		if g.edges[[2]*Node{g.pred[node][0], node}] == 0 {
-			g.Prune(node)
-		}
-	}
-
-	watch.Lap("prune")
-
 	g.Beta(n)
 
 	watch.Lap("beta")
 
 	for _, node := range g.nodes {
 		if node.nType != FinalNode {
-			continue
-		}
-
-		if _, ok := g.pruned[node]; ok {
 			continue
 		}
 
@@ -103,31 +85,52 @@ func (g *Graph) AddEdge(n1, n2 *Node, w float64) {
 	}
 
 	if _, ok := g.succ[n1]; !ok {
-		g.succ[n1] = make(map[*Node]struct{})
+		g.succ[n1] = make([]*Node, 0)
 	}
 
 	g.pred[n2] = append(g.pred[n2], n1)
-	g.succ[n1][n2] = struct{}{}
+	g.succ[n1] = append(g.succ[n1], n2)
 }
 
-func partitionings(n, k int) [][]int {
+func partitionings(reordering *Node) [][]int {
+	validate := func(p, i int) bool {
+		c := reordering.tree.Children[reordering.r.Reordering[i]]
+
+		if Config.AllowTerminalInsertions && p > c.Size()+1 {
+			return false
+		}
+
+		if !Config.AllowTerminalInsertions && p > c.Size() {
+			return false
+		}
+
+		return true
+	}
+
 	var p func(n, k int, r [][]int) [][]int
 	p = func(n, k int, r [][]int) [][]int {
 		if k == 1 {
-			r = append(r, []int{n})
+			if validate(n, 0) {
+				r = append(r, []int{n})
+			}
+
 			return r
 		}
 
-		for i := 0; i < n+1; i++ {
+		for i := n; i >= 0; i-- {
 			for _, sp := range p(n-i, k-1, make([][]int, 0)) {
-				r = append(r, append([]int{i}, sp...))
+				if !validate(i, len(sp)) {
+					continue
+				}
+
+				r = append(r, append(sp, i))
 			}
 		}
 
 		return r
 	}
 
-	return p(n, k, make([][]int, 0))
+	return p(reordering.l, len(reordering.tree.Children), make([][]int, 0))
 }
 
 func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
@@ -223,7 +226,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 			g.AddNode(r)
 			g.AddEdge(i, r, m.PReordering(reordering))
 
-			for _, partitioning := range partitionings(r.l, len(r.tree.Children)) {
+			for _, partitioning := range partitionings(r) {
 				p := &Node{
 					n:     r.n,
 					r:     r.r,
@@ -286,7 +289,7 @@ func (g *Graph) Alpha(n *Node) float64 {
 
 	sum := float64(0)
 
-	for _, partitioning := range g.Predecessor(n) {
+	for _, partitioning := range g.pred[n] {
 		prod := float64(1)
 
 		reordering := g.pred[partitioning][0]
@@ -298,7 +301,7 @@ func (g *Graph) Alpha(n *Node) float64 {
 		prod *= g.edges[[2]*Node{major, insertion}]
 		prod *= g.edges[[2]*Node{insertion, reordering}]
 
-		for sibling := range g.Successor(partitioning) {
+		for _, sibling := range g.succ[partitioning] {
 			if sibling == n {
 				continue
 			}
@@ -326,74 +329,4 @@ func (g *Graph) Beta(n *Node) float64 {
 	}
 
 	return g.pBeta[n]
-}
-
-func (g *Graph) Successor(n *Node) map[*Node]struct{} {
-	for s := range g.succ[n] {
-		if _, ok := g.pruned[s]; !ok {
-			continue
-		}
-
-		delete(g.succ[n], s)
-	}
-
-	return g.succ[n]
-}
-
-func (g *Graph) Predecessor(n *Node) []*Node {
-	pred := make([]*Node, 0)
-
-	for _, p := range g.pred[n] {
-		if _, ok := g.pruned[p]; ok {
-			continue
-		}
-
-		pred = append(pred, p)
-	}
-
-	return pred
-}
-
-func (g *Graph) Prune(n *Node) {
-	g.pruned[n] = struct{}{}
-
-	if n.nType == MajorNode {
-		for _, p := range g.Predecessor(n) {
-			g.Prune(p)
-		}
-
-		return
-	}
-
-	if len(g.Successor(g.pred[n][0])) == 0 {
-		g.Prune(g.pred[n][0])
-	}
-}
-
-func (g *Graph) removePruned(nodes []*Node) []*Node {
-	result := make([]*Node, 0)
-
-	// TODO modify input slice
-
-	for _, n := range nodes {
-		if _, ok := g.pruned[n]; ok {
-			continue
-		}
-
-		result = append(result, n)
-	}
-
-	return result
-}
-
-func (g *Graph) InsertionCandidateNodes(feature string) []*Node {
-	return g.removePruned(g.insertions[feature])
-}
-
-func (g *Graph) ReorderingCandidateNodes(feature string) []*Node {
-	return g.removePruned(g.reorderings[feature])
-}
-
-func (g *Graph) TranslationCandidateNode(feature string) []*Node {
-	return g.removePruned(g.translations[feature])
 }

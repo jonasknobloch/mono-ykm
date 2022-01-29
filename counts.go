@@ -1,5 +1,9 @@
 package main
 
+import (
+	"math"
+)
+
 func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) float64 {
 	if n.nType != MajorNode {
 		panic("not a major node")
@@ -11,24 +15,24 @@ func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) float64 {
 
 	sumI := float64(0)
 
-	for i := range g.Successor(n) {
+	for _, i := range g.succ[n] {
 		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
 			continue
 		}
 
 		sumR := float64(0)
 
-		for r := range g.Successor(i) {
+		for _, r := range g.succ[i] {
 			if len(filter) > 1 && filter[1] != "" && r.r.key != filter[1] {
 				continue
 			}
 
 			sumP := float64(0)
 
-			for p := range g.Successor(r) {
+			for _, p := range g.succ[r] {
 				prod := float64(1)
 
-				for m := range g.Successor(p) {
+				for _, m := range g.succ[p] {
 					prod *= g.Beta(m)
 				}
 
@@ -55,14 +59,14 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
 
 	sumI := float64(0)
 
-	for i := range g.Successor(n) {
+	for _, i := range g.succ[n] {
 		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
 			continue
 		}
 
 		sumT := float64(0)
 
-		for t := range g.Successor(i) {
+		for _, t := range g.succ[i] {
 			if len(filter) > 1 && filter[1] != "" && t.t.key != filter[1] {
 				continue
 			}
@@ -79,7 +83,7 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
 func (g *Graph) InsertionCount(feature, key string) float64 {
 	sum := float64(0)
 
-	for _, m := range g.InsertionCandidateNodes(feature) {
+	for _, m := range g.insertions[feature] {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
@@ -93,6 +97,10 @@ func (g *Graph) InsertionCount(feature, key string) float64 {
 		prod /= g.Beta(m)
 
 		sum += prod
+
+		if math.IsNaN(sum) {
+			panic("unexpected NaN")
+		}
 	}
 
 	return sum
@@ -101,7 +109,7 @@ func (g *Graph) InsertionCount(feature, key string) float64 {
 func (g *Graph) ReorderingCount(feature, key string) float64 {
 	sum := float64(0)
 
-	for _, m := range g.ReorderingCandidateNodes(feature) {
+	for _, m := range g.reorderings[feature] {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
@@ -118,7 +126,7 @@ func (g *Graph) ReorderingCount(feature, key string) float64 {
 func (g *Graph) TranslationCount(feature, key string) float64 {
 	sum := float64(0)
 
-	for _, m := range g.TranslationCandidateNode(feature) {
+	for _, m := range g.translations[feature] {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
