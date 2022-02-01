@@ -117,6 +117,32 @@ func parse(str string) (*MetaTree, error) {
 	return pCache[str], nil
 }
 
+func initSample(sentence1, sentence2 string) (*MetaTree, []string, error) {
+	mt, err := parse(sentence1)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	e, err := tokenize(sentence2)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if mt.Tree.Size() < len(e) {
+		return nil, nil, errors.New("target sentence unreachable")
+	}
+
+	c, ok := O(mt.Tree, len(e))
+
+	if !ok || (Config.TrainingComplexityLimit != -1 && Config.TrainingComplexityLimit < c) {
+		return nil, nil, errors.New("sample exceeds complexity limit")
+	}
+
+	return mt, e, nil
+}
+
 func importTrees(name string) error {
 	var r *csv.Reader
 
@@ -206,48 +232,38 @@ func TrainEM(iterations, samples int) {
 
 		watch.Lap("init")
 
-		counter := 0
+		eval := 0
+		skip := 0
 
-		for corpus.Next() && (samples == -1 || counter < samples) {
+		for corpus.Next() && (samples == -1 || eval < samples) {
 			if !corpus.Sample().Quality {
 				continue
 			}
 
 			sample := corpus.Sample()
 
-			fmt.Printf("Analyzing sample %d_%d (#%d)\n", sample.ID1, sample.ID2, counter)
-
-			mt, err := parse(sample.String1)
+			mt, f, err := initSample(sample.String1, sample.String2)
 
 			if err != nil {
-				panic(err)
-			}
+				fmt.Printf("Skipping sample %d_%d (%s)\n", sample.ID1, sample.ID2, err)
 
-			f, err := tokenize(sample.String2)
+				skip++
 
-			if err != nil {
-				panic(err)
-			}
-
-			c, ok := O(mt.Tree, len(f))
-
-			fmt.Printf("Complexity estimation: %d (%t)\n", c, ok)
-
-			if !ok || (Config.TrainingComplexityLimit != -1 && Config.TrainingComplexityLimit < c) {
-				fmt.Println("Skipping sample...")
 				continue
 			}
 
-			watch.Lap(fmt.Sprintf("#%d init", counter))
+			fmt.Printf("Evaluating sample %d_%d (evaluated: %d skipped: %d)\n", sample.ID1, sample.ID2, eval, skip)
+
+			watch.Lap(fmt.Sprintf("#%d init", eval))
 
 			g := NewGraph(mt, f, m)
 
-			watch.Lap(fmt.Sprintf("#%d graph", counter))
+			watch.Lap(fmt.Sprintf("#%d graph", eval))
 
 			fmt.Printf("Nodes: %d Edges: %d\n", len(g.nodes), len(g.edges))
 			fmt.Printf("Alpha: %e Beta: %e\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
 
-			watch.Lap(fmt.Sprintf("#%d validation", counter))
+			watch.Lap(fmt.Sprintf("#%d validation", eval))
 
 			fmt.Println("Updating counts...")
 
@@ -255,15 +271,15 @@ func TrainEM(iterations, samples int) {
 			nR.ForEach(m.r, g.ReorderingCount)
 			nT.ForEach(m.t, g.TranslationCount)
 
-			watch.Lap(fmt.Sprintf("#%d count updates", counter))
+			watch.Lap(fmt.Sprintf("#%d count updates", eval))
 
 			if Config.ExportGraphs {
-				g.Draw(strconv.Itoa(i), strconv.Itoa(counter))
+				g.Draw(strconv.Itoa(i), strconv.Itoa(eval))
 			}
 
-			watch.Lap(fmt.Sprintf("#%d graph export", counter))
+			watch.Lap(fmt.Sprintf("#%d graph export", eval))
 
-			counter++
+			eval++
 		}
 
 		fmt.Println("Adjusting model weights...")
@@ -315,21 +331,9 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 
 		// TODO consider both directions
 
-		mt, err := parse(sample.String1)
+		mt, e, err := initSample(sample.String1, sample.String2)
 
 		if err != nil {
-			panic(err)
-		}
-
-		e, err := tokenize(sample.String2)
-
-		if err != nil {
-			panic(err)
-		}
-
-		c, ok := O(mt.Tree, len(e))
-
-		if !ok || (Config.TrainingComplexityLimit != -1 && Config.TrainingComplexityLimit < c) {
 			continue
 		}
 
