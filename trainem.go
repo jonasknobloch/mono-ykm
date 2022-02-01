@@ -1,17 +1,20 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/corenlp"
 	"github.com/jonasknobloch/jinn/pkg/msrpc"
 	"github.com/jonasknobloch/jinn/pkg/tree"
+	"golang.org/x/sync/semaphore"
 	"io"
 	"log"
 	"net/url"
 	"os"
 	"strconv"
+	"sync"
 )
 
 var corpus *msrpc.Iterator
@@ -199,15 +202,17 @@ func TrainEM(iterations, samples int) {
 
 	fmt.Println("Building dictionaries...")
 
-	nDict, tDict := buildDictionaries(samples)
+	nDict, rDict, tDict := buildDictionaries(samples)
 
 	fmt.Println("Initializing weights...")
 
 	m.InitInsertionWeights(nDict)
+	m.InitReorderingWeights(rDict)
 	m.InitTranslationWeights(tDict)
 
 	if Config.ExportModel {
 		_ = Export(m.n, strconv.Itoa(0), "n")
+		_ = Export(m.r, strconv.Itoa(0), "r")
 		_ = Export(m.t, strconv.Itoa(0), "t")
 	}
 
@@ -215,16 +220,19 @@ func TrainEM(iterations, samples int) {
 	nR := NewCount()
 	nT := NewCount()
 
+	ctx := context.TODO()
+	sem := semaphore.NewWeighted(int64(Config.ConcurrentSampleEvaluations))
+
+	var wg sync.WaitGroup
+
 	watch := NewStopWatch()
 
 	for i := 1; i < iterations+1; i++ {
 		watch.Start()
 
-		fmt.Printf("\nStarting training iteration #%d\n", i)
+		fmt.Printf("\nStarting training iteration #%d\n\n", i)
 
 		initCorpus() // TODO just reset iterator
-
-		fmt.Println("Resetting counts...")
 
 		nC.Reset()
 		nR.Reset()
@@ -245,44 +253,50 @@ func TrainEM(iterations, samples int) {
 			mt, f, err := initSample(sample.String1, sample.String2)
 
 			if err != nil {
-				fmt.Printf("Skipping sample %d_%d (%s)\n", sample.ID1, sample.ID2, err)
-
 				skip++
+
+				fmt.Printf("Skipped sample %d_%d (%s)\n", sample.ID1, sample.ID2, err)
 
 				continue
 			}
 
-			fmt.Printf("Evaluating sample %d_%d (evaluated: %d skipped: %d)\n", sample.ID1, sample.ID2, eval, skip)
-
-			watch.Lap(fmt.Sprintf("#%d init", eval))
-
-			g := NewGraph(mt, f, m)
-
-			watch.Lap(fmt.Sprintf("#%d graph", eval))
-
-			fmt.Printf("Nodes: %d Edges: %d\n", len(g.nodes), len(g.edges))
-			fmt.Printf("Alpha: %e Beta: %e\n", g.Alpha(g.nodes[0]), g.Beta(g.nodes[0]))
-
-			watch.Lap(fmt.Sprintf("#%d validation", eval))
-
-			fmt.Println("Updating counts...")
-
-			nC.ForEach(m.n, g.InsertionCount)
-			nR.ForEach(m.r, g.ReorderingCount)
-			nT.ForEach(m.t, g.TranslationCount)
-
-			watch.Lap(fmt.Sprintf("#%d count updates", eval))
-
-			if Config.ExportGraphs {
-				g.Draw(strconv.Itoa(i), strconv.Itoa(eval))
+			if err := sem.Acquire(ctx, 1); err != nil {
+				log.Fatalf("Failed to acquire semaphore: %v", err)
 			}
 
-			watch.Lap(fmt.Sprintf("#%d graph export", eval))
+			wg.Add(1)
+
+			go func() {
+				defer sem.Release(1)
+				defer wg.Done()
+
+				w := NewStopWatch()
+
+				w.Start()
+
+				g := NewGraph(mt, f, m)
+
+				if Config.ExportGraphs {
+					g.Draw()
+				}
+
+				nC.ForEach(m.n, g.InsertionCount)
+				nR.ForEach(m.r, g.ReorderingCount)
+				nT.ForEach(m.t, g.TranslationCount)
+
+				w.Stop()
+
+				fmt.Printf("Evaluated sample %d_%d (eval: %d skip: %d) [%s]\n", sample.ID1, sample.ID2, eval, skip, w.Result())
+			}()
 
 			eval++
 		}
 
-		fmt.Println("Adjusting model weights...")
+		wg.Wait()
+
+		watch.Lap("samples")
+
+		fmt.Printf("\nAdjusting model weights...\n\n")
 
 		m.UpdateWeights(nC, nR, nT)
 
@@ -293,7 +307,7 @@ func TrainEM(iterations, samples int) {
 			_ = Export(m.r, strconv.Itoa(i), "r")
 			_ = Export(m.t, strconv.Itoa(i), "t")
 
-			watch.Lap("model export")
+			watch.Lap("export")
 		}
 
 		watch.Stop()
@@ -304,8 +318,9 @@ func TrainEM(iterations, samples int) {
 	}
 }
 
-func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[string]int) {
+func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[string]int, map[string]map[string]int) {
 	insertions := make(map[string]map[string]int)
+	reorderings := make(map[string]map[string]int)
 	translations := make(map[string]map[string]int)
 
 	addParameter := func(m map[string]map[string]int, f, k string) {
@@ -342,6 +357,10 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 				addParameter(insertions, i.Feature(), i.Key())
 			}
 
+			for _, r := range Reorderings(st, mt.meta[st][1]) {
+				addParameter(reorderings, r.Feature(), r.Key())
+			}
+
 			for _, t := range Translations(st, e, mt.meta[st][2]) {
 				addParameter(translations, t.Feature(), t.Key())
 			}
@@ -350,5 +369,5 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 		counter++
 	}
 
-	return insertions, translations
+	return insertions, reorderings, translations
 }

@@ -6,17 +6,18 @@ import (
 )
 
 var Config = struct {
-	AllowTerminalInsertions bool
-	TrainingDataPath        string
-	TrainingIterationLimit  int
-	TrainingSampleLimit     int
-	TrainingComplexityLimit int
-	CoreNLPUrl              string
-	TreeMockDataPath        string
-	ExportGraphs            bool
-	ExportModel             bool
-	GraphExportDirectory    string
-	ModelExportDirectory    string
+	AllowTerminalInsertions     bool
+	TrainingDataPath            string
+	TrainingIterationLimit      int
+	TrainingSampleLimit         int
+	TrainingComplexityLimit     int
+	ConcurrentSampleEvaluations int
+	CoreNLPUrl                  string
+	TreeMockDataPath            string
+	ExportGraphs                bool
+	ExportModel                 bool
+	GraphExportDirectory        string
+	ModelExportDirectory        string
 }{}
 
 func init() {
@@ -26,6 +27,8 @@ func init() {
 	Config.TrainingIterationLimit, _, _ = parseEnvInt("TRAINING_ITERATION_LIMIT", 1)
 	Config.TrainingSampleLimit, _, _ = parseEnvInt("TRAINING_SAMPLE_LIMIT", -1)
 	Config.TrainingComplexityLimit, _, _ = parseEnvInt("TRAINING_COMPLEXITY_LIMIT", -1)
+
+	Config.ConcurrentSampleEvaluations, _, _ = parseEnvInt("CONCURRENT_SAMPLE_EVALUATIONS", 1)
 
 	Config.CoreNLPUrl, _ = parseEnvString("CORE_NLP_URL", "")
 	Config.TreeMockDataPath, _ = parseEnvString("TREE_MOCK_DATA_PATH", "")

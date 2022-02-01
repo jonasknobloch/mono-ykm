@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 )
 
@@ -40,18 +39,9 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		major: make(map[*tree.Tree]map[string]*Node),
 	}
 
-	watch := NewStopWatch()
-
-	watch.Start()
-
 	g.AddNode(n)
 	g.Expand(n, m, mt.meta)
-
-	watch.Lap("expand")
-
 	g.Beta(n)
-
-	watch.Lap("beta")
 
 	for _, node := range g.nodes {
 		if node.nType != FinalNode {
@@ -60,11 +50,6 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 
 		g.Alpha(g.pred[g.pred[node][0]][0])
 	}
-
-	watch.Lap("alpha")
-	watch.Stop()
-
-	fmt.Printf("%s", watch)
 
 	return g
 }
