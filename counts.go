@@ -96,11 +96,11 @@ func (g *Graph) InsertionCount(feature, key string) float64 {
 
 		prod /= g.Beta(m)
 
-		sum += prod
-
-		if math.IsNaN(sum) {
-			panic("unexpected NaN")
+		if math.IsNaN(prod) {
+			continue
 		}
+
+		sum += prod
 	}
 
 	return sum
@@ -116,6 +116,10 @@ func (g *Graph) ReorderingCount(feature, key string) float64 {
 		prod *= g.InsideWeightsInterior(m, "", key)
 
 		prod /= g.Beta(m)
+
+		if math.IsNaN(prod) {
+			continue
+		}
 
 		sum += prod
 	}
@@ -133,6 +137,10 @@ func (g *Graph) TranslationCount(feature, key string) float64 {
 		prod *= g.InsideWeightsTerminal(m, "", key)
 
 		prod /= g.Beta(m)
+
+		if math.IsNaN(prod) {
+			continue
+		}
 
 		sum += prod
 	}

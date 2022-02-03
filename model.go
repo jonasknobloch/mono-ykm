@@ -1,5 +1,7 @@
 package main
 
+import "math"
+
 type Model struct {
 	n map[string]map[string]float64
 	r map[string]map[string]float64
@@ -60,7 +62,13 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 	update := func(p map[string]map[string]float64, c *Count) {
 		for feature, keys := range p {
 			for key := range keys {
-				p[feature][key] = c.Get(feature, key) / c.Sum(feature)
+				val := c.Get(feature, key) / c.Sum(feature)
+
+				if math.IsNaN(val) {
+					val = 0
+				}
+
+				p[feature][key] = val
 			}
 		}
 	}
