@@ -120,6 +120,28 @@ func parse(str string) (*MetaTree, error) {
 	return pCache[str], nil
 }
 
+func initModel(samples int) *Model {
+	m := NewModel()
+
+	fmt.Println("Building dictionaries...")
+
+	nDict, rDict, tDict := buildDictionaries(samples)
+
+	fmt.Println("Initializing weights...")
+
+	m.InitInsertionWeights(nDict)
+	m.InitReorderingWeights(rDict)
+	m.InitTranslationWeights(tDict)
+
+	if Config.ExportModel {
+		_ = Export(m.n, strconv.Itoa(0), "n")
+		_ = Export(m.r, strconv.Itoa(0), "r")
+		_ = Export(m.t, strconv.Itoa(0), "t")
+	}
+
+	return m
+}
+
 func initSample(sentence1, sentence2 string) (*MetaTree, []string, error) {
 	mt, err := parse(sentence1)
 
@@ -189,6 +211,30 @@ func importTrees(name string) error {
 	return nil
 }
 
+func importModel(name string) (*Model, error) {
+	fmt.Println("Importing model...")
+
+	n, err := Import(name + "-n.tsv")
+
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := Import(name + "-r.tsv")
+
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := Import(name + "-t.tsv")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &Model{n, r, t}, nil
+}
+
 func TrainEM(iterations, samples int) {
 	if Config.TreeMockDataPath != "" {
 		err := importTrees(Config.TreeMockDataPath)
@@ -198,22 +244,18 @@ func TrainEM(iterations, samples int) {
 		}
 	}
 
-	m := NewModel()
+	var m *Model
+	var o int
 
-	fmt.Println("Building dictionaries...")
-
-	nDict, rDict, tDict := buildDictionaries(samples)
-
-	fmt.Println("Initializing weights...")
-
-	m.InitInsertionWeights(nDict)
-	m.InitReorderingWeights(rDict)
-	m.InitTranslationWeights(tDict)
-
-	if Config.ExportModel {
-		_ = Export(m.n, strconv.Itoa(0), "n")
-		_ = Export(m.r, strconv.Itoa(0), "r")
-		_ = Export(m.t, strconv.Itoa(0), "t")
+	if Config.InitModelPath != "" {
+		if model, err := importModel(Config.InitModelPath); err != nil {
+			log.Fatal(err)
+		} else {
+			m = model
+			o = Config.InitModelIteration
+		}
+	} else {
+		m = initModel(samples)
 	}
 
 	nC := NewCount()
@@ -227,7 +269,7 @@ func TrainEM(iterations, samples int) {
 
 	watch := NewStopWatch()
 
-	for i := 1; i < iterations+1; i++ {
+	for i := 1 + o; i < iterations+o+1; i++ {
 		watch.Start()
 
 		fmt.Printf("\nStarting training iteration #%d\n\n", i)

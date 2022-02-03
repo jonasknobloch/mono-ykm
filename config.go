@@ -14,6 +14,8 @@ var Config = struct {
 	ConcurrentSampleEvaluations int
 	CoreNLPUrl                  string
 	TreeMockDataPath            string
+	InitModelPath               string
+	InitModelIteration          int
 	ExportGraphs                bool
 	ExportModel                 bool
 	GraphExportDirectory        string
@@ -32,6 +34,9 @@ func init() {
 
 	Config.CoreNLPUrl, _ = parseEnvString("CORE_NLP_URL", "")
 	Config.TreeMockDataPath, _ = parseEnvString("TREE_MOCK_DATA_PATH", "")
+
+	Config.InitModelPath, _ = parseEnvString("INIT_MODEL_PATH", "")
+	Config.InitModelIteration, _, _ = parseEnvInt("INIT_MODEL_ITERATION", 1)
 
 	Config.ExportGraphs, _, _ = parseEnvBool("EXPORT_GRAPHS", false)
 	Config.ExportModel, _, _ = parseEnvBool("EXPORT_MODEL", true)
