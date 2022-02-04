@@ -155,7 +155,10 @@ func initSample(sentence1, sentence2 string) (*MetaTree, []string, error) {
 		return nil, nil, err
 	}
 
-	if mt.Tree.Size() < len(e) {
+	unreachable := !Config.AllowTerminalInsertions && mt.Tree.Size() < len(e)
+	unreachable = unreachable || Config.AllowTerminalInsertions && mt.Tree.Size()+len(mt.Tree.Leaves()) < len(e)
+
+	if unreachable {
 		return nil, nil, errors.New("target sentence unreachable")
 	}
 
