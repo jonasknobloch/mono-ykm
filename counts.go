@@ -110,6 +110,10 @@ func (g *Graph) InsertionCount(feature, key string) (float64, bool) {
 		sum += prod
 	}
 
+	if sum == 0 {
+		return math.SmallestNonzeroFloat64, true
+	}
+
 	return sum, ok
 }
 
@@ -138,6 +142,10 @@ func (g *Graph) ReorderingCount(feature, key string) (float64, bool) {
 		sum += prod
 	}
 
+	if sum == 0 {
+		return math.SmallestNonzeroFloat64, true
+	}
+
 	return sum, ok
 }
 
@@ -164,6 +172,10 @@ func (g *Graph) TranslationCount(feature, key string) (float64, bool) {
 		}
 
 		sum += prod
+	}
+
+	if sum == 0 {
+		return math.SmallestNonzeroFloat64, true
 	}
 
 	return sum, ok

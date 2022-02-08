@@ -60,14 +60,18 @@ func (m *Model) PTranslation(translation Translation) float64 {
 
 func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) {
 	update := func(p map[string]map[string]float64, c *Count) {
-		for feature, keys := range c.val {
+		for feature, keys := range p {
+			if _, ok := c.val[feature]; !ok {
+				continue
+			}
+
 			sum := c.Sum(feature)
 
 			for key := range keys {
 				val := c.Get(feature, key) / sum
 
 				if math.IsNaN(val) {
-					val = 0
+					panic("unexpected NaN")
 				}
 
 				p[feature][key] = val
