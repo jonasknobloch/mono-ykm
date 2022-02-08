@@ -1,6 +1,6 @@
 package main
 
-import "math"
+import "fmt"
 
 type Model struct {
 	n map[string]map[string]float64
@@ -67,14 +67,16 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 
 			sum := c.Sum(feature)
 
+			if sum == 0 {
+				fmt.Printf("Resetting probability distribution for %s...\n", feature)
+			}
+
 			for key := range keys {
-				val := c.Get(feature, key) / sum
-
-				if math.IsNaN(val) {
-					panic("unexpected NaN")
+				if sum == 0 {
+					p[feature][key] = 1 / float64(c.Size(feature))
+				} else {
+					p[feature][key] = c.Get(feature, key) / sum
 				}
-
-				p[feature][key] = val
 			}
 		}
 	}

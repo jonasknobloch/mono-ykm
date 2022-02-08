@@ -59,6 +59,10 @@ func (c *Count) Sum(feature string) float64 {
 	return sum
 }
 
+func (c *Count) Size(feature string) int {
+	return len(c.val[feature])
+}
+
 func (c *Count) Reset() {
 	for feature, keys := range c.val {
 		for key := range keys {
