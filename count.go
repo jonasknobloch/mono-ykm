@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 type Count struct {
 	val map[string]map[string]float64
@@ -33,10 +35,16 @@ func (c *Count) Get(feature, key string) float64 {
 	return c.val[feature][key]
 }
 
-func (c *Count) ForEach(p map[string]map[string]float64, f func(string, string) float64) {
+func (c *Count) ForEach(p map[string]map[string]float64, f func(string, string) (float64, bool)) {
 	for feature, keys := range p {
 		for key := range keys {
-			c.Add(feature, key, f(feature, key))
+			val, ok := f(feature, key)
+
+			if !ok {
+				continue
+			}
+
+			c.Add(feature, key, val)
 		}
 	}
 }

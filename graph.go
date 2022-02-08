@@ -13,9 +13,9 @@ type Graph struct {
 	pAlpha map[*Node]float64
 	pBeta  map[*Node]float64
 
-	insertions   map[string][]*Node // feature -> MajorNode
-	reorderings  map[string][]*Node // feature -> MajorNode
-	translations map[string][]*Node // feature -> MajorNode
+	insertions   map[string]map[string][]*Node
+	reorderings  map[string]map[string][]*Node
+	translations map[string]map[string][]*Node
 
 	major map[*tree.Tree]map[string]*Node
 }
@@ -32,9 +32,9 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		pAlpha: make(map[*Node]float64),
 		pBeta:  make(map[*Node]float64),
 
-		insertions:   make(map[string][]*Node),
-		reorderings:  make(map[string][]*Node),
-		translations: make(map[string][]*Node),
+		insertions:   make(map[string]map[string][]*Node),
+		reorderings:  make(map[string]map[string][]*Node),
+		translations: make(map[string]map[string][]*Node),
 
 		major: make(map[*tree.Tree]map[string]*Node),
 	}
@@ -75,6 +75,33 @@ func (g *Graph) AddEdge(n1, n2 *Node, w float64) {
 
 	g.pred[n2] = append(g.pred[n2], n1)
 	g.succ[n1] = append(g.succ[n1], n2)
+}
+
+func (g *Graph) AddOperation(op Operation, n *Node) {
+	var m map[string]map[string][]*Node
+
+	switch op.(type) {
+	case Insertion:
+		m = g.insertions
+	case Reordering:
+		m = g.reorderings
+	case Translation:
+		m = g.translations
+	default:
+		panic("unexpected operation type")
+	}
+
+	feature, key := op.Feature(), op.Key()
+
+	if _, ok := m[feature]; !ok {
+		m[feature] = make(map[string][]*Node)
+	}
+
+	if _, ok := m[feature][key]; !ok {
+		m[feature][key] = make([]*Node, 0)
+	}
+
+	m[feature][key] = append(m[feature][key], n)
 }
 
 func partitionings(reordering *Node) [][]int {
@@ -125,30 +152,6 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		panic("unknown feature")
 	}
 
-	if feats[0] != "" {
-		if _, ok := g.insertions[feats[0]]; !ok {
-			g.insertions[feats[0]] = make([]*Node, 0)
-		}
-
-		g.insertions[feats[0]] = append(g.insertions[feats[0]], n)
-	}
-
-	if feats[1] != "" && len(n.tree.Children) > 0 {
-		if _, ok := g.reorderings[feats[1]]; !ok {
-			g.reorderings[feats[1]] = make([]*Node, 0)
-		}
-
-		g.reorderings[feats[1]] = append(g.reorderings[feats[1]], n)
-	}
-
-	if feats[2] != "" && len(n.tree.Children) == 0 {
-		if _, ok := g.translations[feats[2]]; !ok {
-			g.translations[feats[2]] = make([]*Node, 0)
-		}
-
-		g.translations[feats[2]] = append(g.translations[feats[2]], n)
-	}
-
 	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], feats[InsertionFeature], false) {
 		insertion := op.(Insertion)
 
@@ -175,6 +178,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 
 		g.AddNode(i)
 		g.AddEdge(n, i, m.PInsertion(insertion))
+		g.AddOperation(insertion, n)
 
 		if len(n.tree.Children) == 0 {
 			translation := NewTranslation(i.Substring(), feats[TranslationFeature])
@@ -191,6 +195,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 
 			g.AddNode(f)
 			g.AddEdge(i, f, m.PTranslation(translation))
+			g.AddOperation(translation, n)
 
 			continue
 		}
@@ -210,6 +215,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 
 			g.AddNode(r)
 			g.AddEdge(i, r, m.PReordering(reordering))
+			g.AddOperation(reordering, n)
 
 			for _, partitioning := range partitionings(r) {
 				p := &Node{

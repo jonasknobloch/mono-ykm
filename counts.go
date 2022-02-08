@@ -80,10 +80,17 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
 	return sumI
 }
 
-func (g *Graph) InsertionCount(feature, key string) float64 {
+func (g *Graph) InsertionCount(feature, key string) (float64, bool) {
 	sum := float64(0)
 
-	for _, m := range g.insertions[feature] {
+	var ms []*Node
+	var ok bool
+
+	if ms, ok = g.insertions[feature][key]; !ok {
+		return sum, ok
+	}
+
+	for _, m := range ms {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
@@ -103,13 +110,20 @@ func (g *Graph) InsertionCount(feature, key string) float64 {
 		sum += prod
 	}
 
-	return sum
+	return sum, ok
 }
 
-func (g *Graph) ReorderingCount(feature, key string) float64 {
+func (g *Graph) ReorderingCount(feature, key string) (float64, bool) {
 	sum := float64(0)
 
-	for _, m := range g.reorderings[feature] {
+	var ms []*Node
+	var ok bool
+
+	if ms, ok = g.reorderings[feature][key]; !ok {
+		return sum, ok
+	}
+
+	for _, m := range ms {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
@@ -124,13 +138,20 @@ func (g *Graph) ReorderingCount(feature, key string) float64 {
 		sum += prod
 	}
 
-	return sum
+	return sum, ok
 }
 
-func (g *Graph) TranslationCount(feature, key string) float64 {
+func (g *Graph) TranslationCount(feature, key string) (float64, bool) {
 	sum := float64(0)
 
-	for _, m := range g.translations[feature] {
+	var ms []*Node
+	var ok bool
+
+	if ms, ok = g.translations[feature][key]; !ok {
+		return sum, ok
+	}
+
+	for _, m := range ms {
 		prod := float64(1)
 
 		prod *= g.pAlpha[m]
@@ -145,5 +166,5 @@ func (g *Graph) TranslationCount(feature, key string) float64 {
 		sum += prod
 	}
 
-	return sum
+	return sum, ok
 }
