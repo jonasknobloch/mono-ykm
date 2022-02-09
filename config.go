@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 )
 
 var Config = struct {
 	AllowTerminalInsertions     bool
+	ModelErrorStrategy          string
 	TrainingDataPath            string
 	TrainingIterationLimit      int
 	TrainingSampleLimit         int
@@ -27,6 +29,10 @@ func init() {
 	defer fmt.Printf("%+v\n\n", &Config)
 
 	Config.AllowTerminalInsertions, _, _ = parseEnvBool("ALLOW_TERMINAL_INSERTIONS", false)
+
+	Config.ModelErrorStrategy, _ = parseEnvString("MODEL_ERROR_STRATEGY", ErrorStrategyReset)
+
+	validateConst(Config.ModelErrorStrategy, ErrorStrategyIgnore, ErrorStrategyKeep, ErrorStrategyReset)
 
 	Config.TrainingDataPath, _ = parseEnvString("TRAINING_DATA_PATH", "")
 	Config.TrainingIterationLimit, _, _ = parseEnvInt("TRAINING_ITERATION_LIMIT", 1)
@@ -85,6 +91,22 @@ func parseEnvBool(key string, def bool) (bool, bool, error) {
 	}
 
 	return def, false, nil
+}
+
+func validateConst(value string, candidates ...string) {
+	valid := false
+
+	for _, c := range candidates {
+		if c != value {
+			continue
+		}
+
+		valid = true
+	}
+
+	if !valid {
+		log.Fatalf("Invalid value for const: %s not in %v", value, candidates)
+	}
 }
 
 func ensureDirectoryExists(name string) {

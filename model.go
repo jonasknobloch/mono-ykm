@@ -8,6 +8,10 @@ type Model struct {
 	t map[string]map[string]float64
 }
 
+const ErrorStrategyIgnore = "ignore"
+const ErrorStrategyKeep = "keep"
+const ErrorStrategyReset = "reset"
+
 func NewModel() *Model {
 	return &Model{
 		n: make(map[string]map[string]float64),
@@ -68,15 +72,28 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 			sum := c.Sum(feature)
 
 			if sum == 0 {
-				fmt.Printf("Resetting probability distribution for %s...\n", feature)
+				fmt.Printf("Invalid probability distribution for %s\n", feature)
+
+				var val float64
+
+				switch Config.ModelErrorStrategy {
+				case ErrorStrategyIgnore:
+					val = 0
+				case ErrorStrategyReset:
+					val = 1 / float64(c.Size(feature))
+				case ErrorStrategyKeep:
+					continue
+				}
+
+				for key := range keys {
+					p[feature][key] = val
+				}
+
+				continue
 			}
 
 			for key := range keys {
-				if sum == 0 {
-					p[feature][key] = 1 / float64(c.Size(feature))
-				} else {
-					p[feature][key] = c.Get(feature, key) / sum
-				}
+				p[feature][key] = c.Get(feature, key) / sum
 			}
 		}
 	}
