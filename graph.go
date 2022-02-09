@@ -177,7 +177,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		}
 
 		g.AddNode(i)
-		g.AddEdge(n, i, m.PInsertion(insertion))
+		g.AddEdge(n, i, m.Probability(insertion))
 		g.AddOperation(insertion, n)
 
 		if len(n.tree.Children) == 0 {
@@ -194,7 +194,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 			}
 
 			g.AddNode(f)
-			g.AddEdge(i, f, m.PTranslation(translation))
+			g.AddEdge(i, f, m.Probability(translation))
 			g.AddOperation(translation, n)
 
 			continue
@@ -214,7 +214,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 			}
 
 			g.AddNode(r)
-			g.AddEdge(i, r, m.PReordering(reordering))
+			g.AddEdge(i, r, m.Probability(reordering))
 			g.AddOperation(reordering, n)
 
 			for _, partitioning := range partitionings(r) {

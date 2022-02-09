@@ -50,16 +50,21 @@ func (m *Model) InitTranslationWeights(dictionary map[string]map[string]int) {
 	}
 }
 
-func (m *Model) PInsertion(insertion Insertion) float64 {
-	return m.n[insertion.Feature()][insertion.Key()]
+func (m *Model) Table(op Operation) map[string]map[string]float64 {
+	switch op.(type) {
+	case Insertion:
+		return m.n
+	case Reordering:
+		return m.r
+	case Translation:
+		return m.t
+	default:
+		panic("unexpected operation type")
+	}
 }
 
-func (m *Model) PReordering(reordering Reordering) float64 {
-	return m.r[reordering.Feature()][reordering.Key()]
-}
-
-func (m *Model) PTranslation(translation Translation) float64 {
-	return m.t[translation.feature][translation.key]
+func (m *Model) Probability(op Operation) float64 {
+	return m.Table(op)[op.Feature()][op.Key()]
 }
 
 func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) {
