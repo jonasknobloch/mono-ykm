@@ -129,9 +129,9 @@ func initModel(samples int) *Model {
 
 	fmt.Println("Initializing weights...")
 
-	m.InitInsertionWeights(nDict)
-	m.InitReorderingWeights(rDict)
-	m.InitTranslationWeights(tDict)
+	m.InitTable(m.n, nDict)
+	m.InitTable(m.r, rDict)
+	m.InitTable(m.t, tDict)
 
 	if Config.ExportModel {
 		_ = Export(m.n, strconv.Itoa(0), "n")

@@ -20,32 +20,14 @@ func NewModel() *Model {
 	}
 }
 
-func (m *Model) InitInsertionWeights(dictionary map[string]map[string]int) {
-	for feature, keys := range dictionary {
-		m.n[feature] = make(map[string]float64, len(keys))
+func (m *Model) InitTable(t map[string]map[string]float64, d map[string]map[string]int) {
+	for feature, keys := range d {
+		t[feature] = make(map[string]float64, len(keys))
+
+		val := 1 / float64(len(keys))
 
 		for key := range keys {
-			m.n[feature][key] = 1 / float64(len(keys))
-		}
-	}
-}
-
-func (m *Model) InitReorderingWeights(dictionary map[string]map[string]int) {
-	for feature, keys := range dictionary {
-		m.r[feature] = make(map[string]float64, len(keys))
-
-		for key := range keys {
-			m.r[feature][key] = 1 / float64(len(keys))
-		}
-	}
-}
-
-func (m *Model) InitTranslationWeights(dictionary map[string]map[string]int) {
-	for feature, keys := range dictionary {
-		m.t[feature] = make(map[string]float64, len(keys))
-
-		for key := range keys {
-			m.t[feature][key] = 1 / float64(len(keys))
+			t[feature][key] = val
 		}
 	}
 }
