@@ -1,11 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math/big"
+)
 
 type Model struct {
-	n map[string]map[string]float64
-	r map[string]map[string]float64
-	t map[string]map[string]float64
+	n map[string]map[string]*big.Float
+	r map[string]map[string]*big.Float
+	t map[string]map[string]*big.Float
 }
 
 const ErrorStrategyIgnore = "ignore"
@@ -14,43 +17,43 @@ const ErrorStrategyReset = "reset"
 
 func NewModel() *Model {
 	return &Model{
-		n: make(map[string]map[string]float64),
-		r: make(map[string]map[string]float64),
-		t: make(map[string]map[string]float64),
+		n: make(map[string]map[string]*big.Float),
+		r: make(map[string]map[string]*big.Float),
+		t: make(map[string]map[string]*big.Float),
 	}
 }
 
 func (m *Model) InitInsertionWeights(dictionary map[string]map[string]int) {
 	for feature, keys := range dictionary {
-		m.n[feature] = make(map[string]float64, len(keys))
+		m.n[feature] = make(map[string]*big.Float, len(keys))
 
 		for key := range keys {
-			m.n[feature][key] = 1 / float64(len(keys))
+			m.n[feature][key] = big.NewFloat(1 / float64(len(keys)))
 		}
 	}
 }
 
 func (m *Model) InitReorderingWeights(dictionary map[string]map[string]int) {
 	for feature, keys := range dictionary {
-		m.r[feature] = make(map[string]float64, len(keys))
+		m.r[feature] = make(map[string]*big.Float, len(keys))
 
 		for key := range keys {
-			m.r[feature][key] = 1 / float64(len(keys))
+			m.r[feature][key] = big.NewFloat(1 / float64(len(keys)))
 		}
 	}
 }
 
 func (m *Model) InitTranslationWeights(dictionary map[string]map[string]int) {
 	for feature, keys := range dictionary {
-		m.t[feature] = make(map[string]float64, len(keys))
+		m.t[feature] = make(map[string]*big.Float, len(keys))
 
 		for key := range keys {
-			m.t[feature][key] = 1 / float64(len(keys))
+			m.t[feature][key] = big.NewFloat(1 / float64(len(keys)))
 		}
 	}
 }
 
-func (m *Model) Table(op Operation) map[string]map[string]float64 {
+func (m *Model) Table(op Operation) map[string]map[string]*big.Float {
 	switch op.(type) {
 	case Insertion:
 		return m.n
@@ -63,12 +66,12 @@ func (m *Model) Table(op Operation) map[string]map[string]float64 {
 	}
 }
 
-func (m *Model) Probability(op Operation) float64 {
+func (m *Model) Probability(op Operation) *big.Float {
 	return m.Table(op)[op.Feature()][op.Key()]
 }
 
 func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) {
-	update := func(p map[string]map[string]float64, c *Count) {
+	update := func(p map[string]map[string]*big.Float, c *Count) {
 		for feature, keys := range p {
 			if _, ok := c.val[feature]; !ok {
 				continue
@@ -76,29 +79,36 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 
 			sum := c.Sum(feature)
 
-			if sum == 0 {
+			if sum == big.NewFloat(0) {
 				fmt.Printf("Invalid probability distribution for %s\n", feature)
 
-				var val float64
+				var val *big.Float
 
 				switch Config.ModelErrorStrategy {
 				case ErrorStrategyIgnore:
-					val = 0
+					val = big.NewFloat(0)
 				case ErrorStrategyReset:
-					val = 1 / float64(c.Size(feature))
+					val = big.NewFloat(1 / float64(c.Size(feature)))
 				case ErrorStrategyKeep:
 					continue
 				}
 
 				for key := range keys {
-					p[feature][key] = val
+					p[feature][key].Copy(val)
 				}
 
 				continue
 			}
 
 			for key := range keys {
-				p[feature][key] = c.Get(feature, key) / sum
+				val := c.Get(feature, key)
+
+				if val == nil {
+					p[feature][key] = big.NewFloat(0)
+					continue
+				}
+
+				p[feature][key].Quo(val, sum)
 			}
 		}
 	}

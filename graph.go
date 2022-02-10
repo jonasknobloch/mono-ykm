@@ -2,16 +2,17 @@ package main
 
 import (
 	"github.com/jonasknobloch/jinn/pkg/tree"
+	"math/big"
 )
 
 type Graph struct {
 	root   *Node
 	nodes  []*Node
-	edges  map[[2]*Node]float64
+	edges  map[[2]*Node]*big.Float
 	pred   map[*Node][]*Node
 	succ   map[*Node][]*Node
-	pAlpha map[*Node]float64
-	pBeta  map[*Node]float64
+	pAlpha map[*Node]*big.Float
+	pBeta  map[*Node]*big.Float
 
 	insertions   map[string]map[string][]*Node
 	reorderings  map[string]map[string][]*Node
@@ -26,11 +27,11 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 	g := &Graph{
 		root:   n,
 		nodes:  make([]*Node, 0),
-		edges:  make(map[[2]*Node]float64),
+		edges:  make(map[[2]*Node]*big.Float),
 		pred:   make(map[*Node][]*Node),
 		succ:   make(map[*Node][]*Node),
-		pAlpha: make(map[*Node]float64),
-		pBeta:  make(map[*Node]float64),
+		pAlpha: make(map[*Node]*big.Float),
+		pBeta:  make(map[*Node]*big.Float),
 
 		insertions:   make(map[string]map[string][]*Node),
 		reorderings:  make(map[string]map[string][]*Node),
@@ -58,7 +59,7 @@ func (g *Graph) AddNode(n *Node) {
 	g.nodes = append(g.nodes, n)
 }
 
-func (g *Graph) AddEdge(n1, n2 *Node, w float64) {
+func (g *Graph) AddEdge(n1, n2 *Node, w *big.Float) {
 	g.edges[[2]*Node{n1, n2}] = w
 
 	if _, ok := g.pred[n2]; !ok {
@@ -230,7 +231,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 				}
 
 				g.AddNode(p)
-				g.AddEdge(r, p, 1)
+				g.AddEdge(r, p, big.NewFloat(1))
 
 				k := r.k
 
@@ -260,47 +261,47 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 						g.Expand(major, m, fm)
 					}
 
-					g.AddEdge(p, g.major[c][sub], 1)
+					g.AddEdge(p, g.major[c][sub], big.NewFloat(1))
 				}
 			}
 		}
 	}
 }
 
-func (g *Graph) Alpha(n *Node) float64 {
+func (g *Graph) Alpha(n *Node) *big.Float {
 	if a, ok := g.pAlpha[n]; ok {
 		return a
 	}
 
 	if n == g.root {
-		g.pAlpha[n] = float64(1)
+		g.pAlpha[n] = big.NewFloat(1)
 
-		return float64(1)
+		return g.pAlpha[n]
 	}
 
-	sum := float64(0)
+	sum := big.NewFloat(0)
 
 	for _, partitioning := range g.pred[n] {
-		prod := float64(1)
+		prod := big.NewFloat(1)
 
 		reordering := g.pred[partitioning][0]
 		insertion := g.pred[reordering][0]
 		major := g.pred[insertion][0]
 
-		prod *= g.Alpha(major)
+		prod.Mul(prod, g.Alpha(major))
 
-		prod *= g.edges[[2]*Node{major, insertion}]
-		prod *= g.edges[[2]*Node{insertion, reordering}]
+		prod.Mul(prod, g.edges[[2]*Node{major, insertion}])
+		prod.Mul(prod, g.edges[[2]*Node{insertion, reordering}])
 
 		for _, sibling := range g.succ[partitioning] {
 			if sibling == n {
 				continue
 			}
 
-			prod *= g.Beta(sibling)
+			prod.Mul(prod, g.Beta(sibling))
 		}
 
-		sum += prod
+		sum.Add(sum, prod)
 	}
 
 	g.pAlpha[n] = sum
@@ -308,7 +309,7 @@ func (g *Graph) Alpha(n *Node) float64 {
 	return g.pAlpha[n]
 }
 
-func (g *Graph) Beta(n *Node) float64 {
+func (g *Graph) Beta(n *Node) *big.Float {
 	if b, ok := g.pBeta[n]; ok {
 		return b
 	}

@@ -1,41 +1,42 @@
 package main
 
 import (
+	"math/big"
 	"sync"
 )
 
 type Count struct {
-	val map[string]map[string]float64
+	val map[string]map[string]*big.Float
 	rwm sync.RWMutex
 }
 
 func NewCount() *Count {
 	return &Count{
-		val: make(map[string]map[string]float64),
+		val: make(map[string]map[string]*big.Float),
 		rwm: sync.RWMutex{},
 	}
 }
 
-func (c *Count) Add(feature, key string, value float64) {
+func (c *Count) Add(feature, key string, value *big.Float) {
 	c.rwm.Lock()
 	defer c.rwm.Unlock()
 
 	if _, ok := c.val[feature]; !ok {
-		c.val[feature] = make(map[string]float64)
+		c.val[feature] = make(map[string]*big.Float)
 	}
 
 	if _, ok := c.val[feature][key]; !ok {
-		c.val[feature][key] = 0
+		c.val[feature][key] = big.NewFloat(0)
 	}
 
-	c.val[feature][key] += value
+	c.val[feature][key].Add(c.val[feature][key], value)
 }
 
-func (c *Count) Get(feature, key string) float64 {
+func (c *Count) Get(feature, key string) *big.Float {
 	return c.val[feature][key]
 }
 
-func (c *Count) ForEach(p map[string]map[string]float64, f func(string, string) (float64, bool)) {
+func (c *Count) ForEach(p map[string]map[string]*big.Float, f func(string, string) (*big.Float, bool)) {
 	for feature, keys := range p {
 		for key := range keys {
 			val, ok := f(feature, key)
@@ -49,11 +50,11 @@ func (c *Count) ForEach(p map[string]map[string]float64, f func(string, string) 
 	}
 }
 
-func (c *Count) Sum(feature string) float64 {
-	sum := float64(0)
+func (c *Count) Sum(feature string) *big.Float {
+	sum := big.NewFloat(0)
 
 	for _, value := range c.val[feature] {
-		sum += value
+		sum.Add(sum, value)
 	}
 
 	return sum
@@ -66,7 +67,7 @@ func (c *Count) Size(feature string) int {
 func (c *Count) Reset() {
 	for feature, keys := range c.val {
 		for key := range keys {
-			c.val[feature][key] = 0
+			c.val[feature][key] = big.NewFloat(0)
 		}
 	}
 }

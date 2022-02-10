@@ -1,10 +1,10 @@
 package main
 
 import (
-	"math"
+	"math/big"
 )
 
-func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) float64 {
+func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) *big.Float {
 	if n.nType != MajorNode {
 		panic("not a major node")
 	}
@@ -13,42 +13,42 @@ func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) float64 {
 		panic("not an interior node node")
 	}
 
-	sumI := float64(0)
+	sumI := big.NewFloat(0)
 
 	for _, i := range g.succ[n] {
 		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
 			continue
 		}
 
-		sumR := float64(0)
+		sumR := big.NewFloat(0)
 
 		for _, r := range g.succ[i] {
 			if len(filter) > 1 && filter[1] != "" && r.r.key != filter[1] {
 				continue
 			}
 
-			sumP := float64(0)
+			sumP := big.NewFloat(0)
 
 			for _, p := range g.succ[r] {
-				prod := float64(1)
+				prod := big.NewFloat(1)
 
 				for _, m := range g.succ[p] {
-					prod *= g.Beta(m)
+					prod.Mul(prod, g.Beta(m))
 				}
 
-				sumP += prod
+				sumP.Add(sumP, prod)
 			}
 
-			sumR += g.edges[[2]*Node{i, r}] * sumP
+			sumR.Add(sumR, sumP.Mul(sumP, g.edges[[2]*Node{i, r}]))
 		}
 
-		sumI += g.edges[[2]*Node{n, i}] * sumR
+		sumI.Add(sumI, sumR.Mul(sumR, g.edges[[2]*Node{n, i}]))
 	}
 
 	return sumI
 }
 
-func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
+func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) *big.Float {
 	if n.nType != MajorNode {
 		panic("not a major node")
 	}
@@ -57,31 +57,31 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) float64 {
 		panic("not a terminal node")
 	}
 
-	sumI := float64(0)
+	sumI := big.NewFloat(0)
 
 	for _, i := range g.succ[n] {
 		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
 			continue
 		}
 
-		sumT := float64(0)
+		sumT := big.NewFloat(0)
 
 		for _, t := range g.succ[i] {
 			if len(filter) > 1 && filter[1] != "" && t.t.key != filter[1] {
 				continue
 			}
 
-			sumT += g.edges[[2]*Node{i, t}]
+			sumT.Add(sumT, g.edges[[2]*Node{i, t}])
 		}
 
-		sumI += g.edges[[2]*Node{n, i}] * sumT
+		sumI.Add(sumI, sumT.Mul(sumT, g.edges[[2]*Node{n, i}]))
 	}
 
 	return sumI
 }
 
-func (g *Graph) InsertionCount(feature, key string) (float64, bool) {
-	sum := float64(0)
+func (g *Graph) InsertionCount(feature, key string) (*big.Float, bool) {
+	sum := big.NewFloat(0)
 
 	var ms []*Node
 	var ok bool
@@ -91,30 +91,26 @@ func (g *Graph) InsertionCount(feature, key string) (float64, bool) {
 	}
 
 	for _, m := range ms {
-		prod := float64(1)
+		prod := big.NewFloat(1)
 
-		prod *= g.pAlpha[m]
+		prod.Mul(prod, g.pAlpha[m])
 
 		if len(m.tree.Children) == 0 {
-			prod *= g.InsideWeightsTerminal(m, key)
+			prod.Mul(prod, g.InsideWeightsTerminal(m, key))
 		} else {
-			prod *= g.InsideWeightsInterior(m, key)
+			prod.Mul(prod, g.InsideWeightsInterior(m, key))
 		}
 
-		prod /= g.Beta(m)
+		prod.Quo(prod, g.Beta(m))
 
-		if math.IsNaN(prod) {
-			continue
-		}
-
-		sum += prod
+		sum.Add(sum, prod)
 	}
 
 	return sum, ok
 }
 
-func (g *Graph) ReorderingCount(feature, key string) (float64, bool) {
-	sum := float64(0)
+func (g *Graph) ReorderingCount(feature, key string) (*big.Float, bool) {
+	sum := big.NewFloat(0)
 
 	var ms []*Node
 	var ok bool
@@ -124,25 +120,21 @@ func (g *Graph) ReorderingCount(feature, key string) (float64, bool) {
 	}
 
 	for _, m := range ms {
-		prod := float64(1)
+		prod := big.NewFloat(1)
 
-		prod *= g.pAlpha[m]
-		prod *= g.InsideWeightsInterior(m, "", key)
+		prod.Mul(prod, g.pAlpha[m])
+		prod.Mul(prod, g.InsideWeightsInterior(m, "", key))
 
-		prod /= g.Beta(m)
+		prod.Quo(prod, g.Beta(m))
 
-		if math.IsNaN(prod) {
-			continue
-		}
-
-		sum += prod
+		sum.Add(sum, prod)
 	}
 
 	return sum, ok
 }
 
-func (g *Graph) TranslationCount(feature, key string) (float64, bool) {
-	sum := float64(0)
+func (g *Graph) TranslationCount(feature, key string) (*big.Float, bool) {
+	sum := big.NewFloat(0)
 
 	var ms []*Node
 	var ok bool
@@ -152,18 +144,14 @@ func (g *Graph) TranslationCount(feature, key string) (float64, bool) {
 	}
 
 	for _, m := range ms {
-		prod := float64(1)
+		prod := big.NewFloat(1)
 
-		prod *= g.pAlpha[m]
-		prod *= g.InsideWeightsTerminal(m, "", key)
+		prod.Mul(prod, g.pAlpha[m])
+		prod.Mul(prod, g.InsideWeightsTerminal(m, "", key))
 
-		prod /= g.Beta(m)
+		prod.Quo(prod, g.Beta(m))
 
-		if math.IsNaN(prod) {
-			continue
-		}
-
-		sum += prod
+		sum.Add(sum, prod)
 	}
 
 	return sum, ok

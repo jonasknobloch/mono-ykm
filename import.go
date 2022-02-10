@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"os"
-	"strconv"
 )
 
-func Import(name string) (map[string]map[string]float64, error) {
+func Import(name string) (map[string]map[string]*big.Float, error) {
 	f, err := os.Open(name)
 
 	if err != nil {
@@ -25,7 +25,7 @@ func Import(name string) (map[string]map[string]float64, error) {
 	var line int
 	var keys []string
 
-	p := make(map[string]map[string]float64)
+	p := make(map[string]map[string]*big.Float)
 
 	for {
 		record, err := r.Read()
@@ -58,10 +58,10 @@ func Import(name string) (map[string]map[string]float64, error) {
 			}
 
 			if _, ok := p[feature]; !ok {
-				p[feature] = make(map[string]float64, len(keys))
+				p[feature] = make(map[string]*big.Float, len(keys))
 			}
 
-			if value, err := strconv.ParseFloat(v, 64); err == nil {
+			if value, _, err := big.ParseFloat(v, 10, 53, big.ToNearestEven); err == nil {
 				p[feature][keys[i]] = value
 			} else {
 				return nil, fmt.Errorf("error converting value: %w", err)

@@ -3,14 +3,14 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 )
 
-func Export(p map[string]map[string]float64, stubs ...string) error {
+func Export(p map[string]map[string]*big.Float, stubs ...string) error {
 	if len(p) == 0 {
 		return nil
 	}
@@ -59,7 +59,7 @@ func Export(p map[string]map[string]float64, stubs ...string) error {
 
 		for _, key := range keys {
 			if value, ok := p[feature][key]; ok {
-				record = append(record, strconv.FormatFloat(value, 'E', -1, 64))
+				record = append(record, value.String())
 			} else {
 				record = append(record, "")
 			}
