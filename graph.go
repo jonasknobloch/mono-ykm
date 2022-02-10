@@ -5,11 +5,11 @@ import (
 )
 
 type Graph struct {
-	root   *Node
-	nodes  []*Node
-	edges  map[[2]*Node]float64
-	pred   map[*Node][]*Node
-	succ   map[*Node][]*Node
+	nodes []*Node
+	edges map[[2]*Node]float64
+	pred  map[*Node][]*Node
+	succ  map[*Node][]*Node
+
 	pAlpha map[*Node]float64
 	pBeta  map[*Node]float64
 
@@ -21,14 +21,20 @@ type Graph struct {
 }
 
 func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
-	n := &Node{tree: mt.Tree, f: f, k: 0, l: len(f), nType: MajorNode}
+	n := &Node{
+		tree:  mt.Tree,
+		f:     f,
+		k:     0,
+		l:     len(f),
+		nType: MajorNode,
+	}
 
 	g := &Graph{
-		root:   n,
-		nodes:  make([]*Node, 0),
-		edges:  make(map[[2]*Node]float64),
-		pred:   make(map[*Node][]*Node),
-		succ:   make(map[*Node][]*Node),
+		nodes: make([]*Node, 0),
+		edges: make(map[[2]*Node]float64),
+		pred:  make(map[*Node][]*Node),
+		succ:  make(map[*Node][]*Node),
+
 		pAlpha: make(map[*Node]float64),
 		pBeta:  make(map[*Node]float64),
 
@@ -272,10 +278,10 @@ func (g *Graph) Alpha(n *Node) float64 {
 		return a
 	}
 
-	if n == g.root {
+	if n == g.nodes[0] {
 		g.pAlpha[n] = float64(1)
 
-		return float64(1)
+		return g.pAlpha[n]
 	}
 
 	sum := float64(0)
