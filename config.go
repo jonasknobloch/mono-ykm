@@ -9,6 +9,7 @@ import (
 
 var Config = struct {
 	AllowTerminalInsertions     bool
+	ReplaceSparseTokens         bool
 	ModelErrorStrategy          string
 	TrainingDataPath            string
 	TrainingIterationLimit      int
@@ -29,7 +30,7 @@ func init() {
 	defer fmt.Printf("%+v\n\n", &Config)
 
 	Config.AllowTerminalInsertions, _, _ = parseEnvBool("ALLOW_TERMINAL_INSERTIONS", false)
-
+	Config.ReplaceSparseTokens, _, _ = parseEnvBool("REPLACE_SPARSE_TOKENS", false)
 	Config.ModelErrorStrategy, _ = parseEnvString("MODEL_ERROR_STRATEGY", ErrorStrategyReset)
 
 	validateConst(Config.ModelErrorStrategy, ErrorStrategyIgnore, ErrorStrategyKeep, ErrorStrategyReset)

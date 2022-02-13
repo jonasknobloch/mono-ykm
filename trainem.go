@@ -87,6 +87,14 @@ func tokenize(str string) ([]string, error) {
 			e = append(e, t.Word)
 		}
 
+		if Config.ReplaceSparseTokens {
+			if tokenOccurrences == nil {
+				return e, nil
+			}
+
+			replaceSparseTokens(e, tokenOccurrences)
+		}
+
 		tCache[str] = e
 	}
 
@@ -112,6 +120,10 @@ func parse(str string) (*MetaTree, error) {
 
 		if len(tr.Children) != 1 && tr.Label != "ROOT" {
 			return nil, errors.New("unexpected tree structure")
+		}
+
+		if Config.ReplaceSparseTokens {
+			replaceSparseLabels(tr.Leaves(), tokenOccurrences)
 		}
 
 		pCache[str] = NewMetaTree(tr.Children[0])
@@ -245,6 +257,10 @@ func TrainEM(iterations, samples int) {
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if Config.ReplaceSparseTokens {
+		initTokenOccurrences()
 	}
 
 	var m *Model
@@ -381,6 +397,8 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 	}
 
 	counter := 0
+
+	initCorpus()
 
 	for corpus.Next() && (samples == -1 || counter < samples) {
 		sample := corpus.Sample()
