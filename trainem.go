@@ -90,19 +90,19 @@ func initSample(sample *Sample) (*MetaTree, []string, error) {
 func importModel(name string) (*Model, error) {
 	fmt.Println("Importing model...")
 
-	n, err := Import(name + "-n.tsv")
+	n, err := Import(name + "-n.gob")
 
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := Import(name + "-r.tsv")
+	r, err := Import(name + "-r.gob")
 
 	if err != nil {
 		return nil, err
 	}
 
-	t, err := Import(name + "-t.tsv")
+	t, err := Import(name + "-t.gob")
 
 	if err != nil {
 		return nil, err
