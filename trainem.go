@@ -2,134 +2,30 @@ package main
 
 import (
 	"context"
-	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/jonasknobloch/jinn/pkg/corenlp"
-	"github.com/jonasknobloch/jinn/pkg/msrpc"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"golang.org/x/sync/semaphore"
-	"io"
 	"log"
-	"net/url"
-	"os"
 	"strconv"
+	"strings"
 	"sync"
 )
 
-var corpus *msrpc.Iterator
-var parser *corenlp.Client
-var tokenizer *corenlp.Client
-
-var pCache map[string]*MetaTree
-var tCache map[string][]string
+var corpus *Iterator
 
 func init() {
 	initCorpus()
-	initParser()
-	initTokenizer()
-
-	pCache = make(map[string]*MetaTree)
-	tCache = make(map[string][]string)
 }
 
 func initCorpus() {
-	c, err := msrpc.NewIterator(Config.TrainingDataPath)
+	c, err := NewIterator(Config.TrainingDataPath)
 
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	corpus = c
-}
-
-func initParser() {
-	u, _ := url.Parse(Config.CoreNLPUrl)
-
-	c, err := corenlp.NewClient(u, corenlp.Properties{
-		Annotators:   corenlp.Annotators{corenlp.ParserAnnotator},
-		OutputFormat: corenlp.FormatJSON,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	parser = c
-}
-
-func initTokenizer() {
-	u, _ := url.Parse(Config.CoreNLPUrl)
-
-	c, err := corenlp.NewClient(u, corenlp.Properties{
-		Annotators:   corenlp.Annotators{corenlp.WordsToSentencesAnnotator},
-		OutputFormat: corenlp.FormatJSON,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	tokenizer = c
-}
-
-func tokenize(str string) ([]string, error) {
-	if _, ok := tCache[str]; !ok {
-		d, err := tokenizer.Annotate(str)
-
-		if err != nil {
-			return nil, err
-		}
-
-		e := make([]string, 0, len(d.Sentences[0].Tokens))
-
-		for _, t := range d.Sentences[0].Tokens {
-			e = append(e, t.Word)
-		}
-
-		if Config.ReplaceSparseTokens {
-			if tokenOccurrences == nil {
-				return e, nil
-			}
-
-			replaceSparseTokens(e, tokenOccurrences)
-		}
-
-		tCache[str] = e
-	}
-
-	return tCache[str], nil
-}
-
-func parse(str string) (*MetaTree, error) {
-	if _, ok := pCache[str]; !ok {
-		doc, err := parser.Annotate(str)
-
-		if err != nil {
-			return nil, err
-		}
-
-		dec := tree.NewDecoder()
-		p := doc.Sentences[0].Parse
-
-		tr, err := dec.Decode(p)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if len(tr.Children) != 1 && tr.Label != "ROOT" {
-			return nil, errors.New("unexpected tree structure")
-		}
-
-		if Config.ReplaceSparseTokens {
-			replaceSparseLabels(tr.Leaves(), tokenOccurrences)
-		}
-
-		pCache[str] = NewMetaTree(tr.Children[0])
-	}
-
-	return pCache[str], nil
 }
 
 func initModel(samples int) *Model {
@@ -154,17 +50,25 @@ func initModel(samples int) *Model {
 	return m
 }
 
-func initSample(sentence1, sentence2 string) (*MetaTree, []string, error) {
-	mt, err := parse(sentence1)
+func initSample(sample *Sample) (*MetaTree, []string, error) {
+	dec := tree.NewDecoder()
+
+	t, err := dec.Decode(sample.Tree)
 
 	if err != nil {
 		return nil, nil, err
 	}
 
-	e, err := tokenize(sentence2)
+	if Config.ReplaceSparseTokens {
+		replaceSparseLabels(t.Leaves(), tokenOccurrences)
+	}
 
-	if err != nil {
-		return nil, nil, err
+	mt := NewMetaTree(t)
+
+	e := strings.Split(sample.Sentence, " ")
+
+	if Config.ReplaceSparseTokens {
+		replaceSparseTokens(e, tokenOccurrences)
 	}
 
 	unreachable := !Config.AllowTerminalInsertions && mt.Tree.Size() < len(e)
@@ -181,49 +85,6 @@ func initSample(sentence1, sentence2 string) (*MetaTree, []string, error) {
 	}
 
 	return mt, e, nil
-}
-
-func importTrees(name string) error {
-	var r *csv.Reader
-
-	if f, err := os.Open(name); err != nil {
-		return fmt.Errorf("error opening file: %w", err)
-	} else {
-		r = csv.NewReader(f)
-		defer f.Close()
-	}
-
-	r.Comma = '\t'
-
-	_, err := r.Read()
-
-	if err != nil {
-		return err
-	}
-
-	dec := tree.NewDecoder()
-
-	for {
-		record, err := r.Read()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return err
-		}
-
-		tr, err := dec.Decode(record[1])
-
-		if err != nil {
-			return err
-		}
-
-		pCache[record[0]] = NewMetaTree(tr)
-	}
-
-	return nil
 }
 
 func importModel(name string) (*Model, error) {
@@ -251,14 +112,6 @@ func importModel(name string) (*Model, error) {
 }
 
 func TrainEM(iterations, samples int) {
-	if Config.TreeMockDataPath != "" {
-		err := importTrees(Config.TreeMockDataPath)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
 	if Config.ReplaceSparseTokens {
 		initTokenOccurrences()
 	}
@@ -305,18 +158,18 @@ func TrainEM(iterations, samples int) {
 		skip := 0
 
 		for corpus.Next() && (samples == -1 || eval < samples) {
-			if !corpus.Sample().Quality {
+			if !corpus.Sample().Label {
 				continue
 			}
 
 			sample := corpus.Sample()
 
-			mt, f, err := initSample(sample.String1, sample.String2)
+			mt, e, err := initSample(sample)
 
 			if err != nil {
 				skip++
 
-				fmt.Printf("Skipped sample %d_%d (%s)\n", sample.ID1, sample.ID2, err)
+				fmt.Printf("Skipped sample %s (%s)\n", sample.ID, err)
 
 				continue
 			}
@@ -335,7 +188,7 @@ func TrainEM(iterations, samples int) {
 
 				w.Start()
 
-				g := NewGraph(mt, f, m)
+				g := NewGraph(mt, e, m)
 
 				if Config.ExportGraphs {
 					g.Draw()
@@ -347,7 +200,7 @@ func TrainEM(iterations, samples int) {
 
 				w.Stop()
 
-				fmt.Printf("Evaluated sample %d_%d (eval: %d skip: %d) [%s]\n", sample.ID1, sample.ID2, eval, skip, w.Result())
+				fmt.Printf("Evaluated sample %s (eval: %d skip: %d) [%s]\n", sample.ID, eval, skip, w.Result())
 			}()
 
 			eval++
@@ -403,13 +256,11 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 	for corpus.Next() && (samples == -1 || counter < samples) {
 		sample := corpus.Sample()
 
-		if !sample.Quality {
+		if !sample.Label {
 			continue
 		}
 
-		// TODO consider both directions
-
-		mt, e, err := initSample(sample.String1, sample.String2)
+		mt, e, err := initSample(sample)
 
 		if err != nil {
 			continue

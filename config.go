@@ -42,9 +42,6 @@ func init() {
 
 	Config.ConcurrentSampleEvaluations, _, _ = parseEnvInt("CONCURRENT_SAMPLE_EVALUATIONS", 1)
 
-	Config.CoreNLPUrl, _ = parseEnvString("CORE_NLP_URL", "")
-	Config.TreeMockDataPath, _ = parseEnvString("TREE_MOCK_DATA_PATH", "")
-
 	Config.InitModelPath, _ = parseEnvString("INIT_MODEL_PATH", "")
 	Config.InitModelIteration, _, _ = parseEnvInt("INIT_MODEL_ITERATION", 1)
 

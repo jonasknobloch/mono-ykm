@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jonasknobloch/jinn/pkg/tree"
-	"log"
+	"strings"
 )
 
 const UnknownToken = "$X$"
@@ -22,11 +22,7 @@ func countTokenOccurrences() map[string]int {
 	occurrences := make(map[string]int)
 
 	count := func(text string) {
-		tokens, err := tokenize(text)
-
-		if err != nil {
-			log.Fatalln(err)
-		}
+		tokens := strings.Split(text, " ")
 
 		for _, t := range tokens {
 			occurrences[t]++
@@ -38,8 +34,7 @@ func countTokenOccurrences() map[string]int {
 	for corpus.Next() && (limit == -1 || counted < limit) {
 		sample := corpus.Sample()
 
-		count(sample.String1)
-		count(sample.String2)
+		count(sample.Sentence)
 
 		counted++
 	}
