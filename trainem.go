@@ -13,6 +13,7 @@ import (
 )
 
 var corpus *Iterator
+var model *Model
 
 func init() {
 	initCorpus()
@@ -50,7 +51,7 @@ func initModel(samples int) *Model {
 	return m
 }
 
-func initSample(sample *Sample) (*MetaTree, []string, error) {
+func initSample(sample *Sample, replaceUnknownTokens bool) (*MetaTree, []string, error) {
 	dec := tree.NewDecoder()
 
 	t, err := dec.Decode(sample.Tree)
@@ -64,6 +65,8 @@ func initSample(sample *Sample) (*MetaTree, []string, error) {
 	}
 
 	mt := NewMetaTree(t)
+
+	mt.CollectFeatures(replaceUnknownTokens)
 
 	e := strings.Split(sample.Sentence, " ")
 
@@ -116,18 +119,17 @@ func TrainEM(iterations, samples int) {
 		initTokenOccurrences()
 	}
 
-	var m *Model
 	var o int
 
 	if Config.InitModelPath != "" {
-		if model, err := importModel(Config.InitModelPath); err != nil {
+		if m, err := importModel(Config.InitModelPath); err != nil {
 			log.Fatal(err)
 		} else {
-			m = model
+			model = m
 			o = Config.InitModelIteration
 		}
 	} else {
-		m = initModel(samples)
+		model = initModel(samples)
 	}
 
 	nC := NewCount()
@@ -164,7 +166,7 @@ func TrainEM(iterations, samples int) {
 
 			sample := corpus.Sample()
 
-			mt, e, err := initSample(sample)
+			mt, e, err := initSample(sample, false)
 
 			if err != nil {
 				skip++
@@ -188,15 +190,15 @@ func TrainEM(iterations, samples int) {
 
 				w.Start()
 
-				g := NewGraph(mt, e, m)
+				g := NewGraph(mt, e, model)
 
 				if Config.ExportGraphs {
 					g.Draw()
 				}
 
-				nC.ForEach(m.n, g.InsertionCount)
-				nR.ForEach(m.r, g.ReorderingCount)
-				nT.ForEach(m.t, g.TranslationCount)
+				nC.ForEach(model.n, g.InsertionCount)
+				nR.ForEach(model.r, g.ReorderingCount)
+				nT.ForEach(model.t, g.TranslationCount)
 
 				w.Stop()
 
@@ -212,14 +214,14 @@ func TrainEM(iterations, samples int) {
 
 		fmt.Printf("\nAdjusting model weights...\n\n")
 
-		m.UpdateWeights(nC, nR, nT)
+		model.UpdateWeights(nC, nR, nT)
 
 		watch.Lap("weights")
 
 		if Config.ExportModel {
-			_ = Export(m.n, strconv.Itoa(i), "n")
-			_ = Export(m.r, strconv.Itoa(i), "r")
-			_ = Export(m.t, strconv.Itoa(i), "t")
+			_ = Export(model.n, strconv.Itoa(i), "n")
+			_ = Export(model.r, strconv.Itoa(i), "r")
+			_ = Export(model.t, strconv.Itoa(i), "t")
 
 			watch.Lap("export")
 		}
@@ -260,7 +262,7 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 			continue
 		}
 
-		mt, e, err := initSample(sample)
+		mt, e, err := initSample(sample, false)
 
 		if err != nil {
 			continue

@@ -12,6 +12,8 @@ func TestNewMetaTree(t *testing.T) {
 
 	mt := NewMetaTree(tr)
 
+	mt.CollectFeatures(false)
+
 	mt.Tree.Walk(func(st *tree.Tree) {
 		if a, ok := mt.Annotation(st); ok {
 			fmt.Printf("n: \"%s\", r: \"%s\", t: \"%s\"\n", a[InsertionFeature], a[ReorderingFeature], a[TranslationFeature])

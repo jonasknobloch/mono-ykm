@@ -23,18 +23,16 @@ func NewMetaTree(t *tree.Tree) *MetaTree {
 		meta: make(map[*tree.Tree][3]string, len(t.Subtrees())),
 	}
 
-	m.CollectFeatures()
-
 	return m
 }
 
-func (mt *MetaTree) CollectFeatures() {
+func (mt *MetaTree) CollectFeatures(replaceUnknownTokens bool) {
 	var walk func(p, st *tree.Tree)
 	walk = func(p, st *tree.Tree) {
 		mt.Annotate(st, [3]string{
-			nFeature(p, st),
-			rFeature(st),
-			tFeature(st),
+			nFeature(p, st, replaceUnknownTokens),
+			rFeature(st, replaceUnknownTokens),
+			tFeature(st, replaceUnknownTokens),
 		})
 
 		for _, c := range st.Children {
