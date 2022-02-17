@@ -64,7 +64,7 @@ func initTokenizer(u *url.URL) error {
 }
 
 func main() {
-	f, err := os.Create("mono-ykm_train.tsv")
+	f, err := os.Create("mono-ykm_paws_train.tsv")
 
 	if err != nil {
 		log.Fatalln(err)
@@ -78,11 +78,11 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if err := MSRPC("msr_paraphrase_train.txt", w); err != nil {
-		log.Fatalln(err)
-	}
+	// if err := MSRPC("msr_paraphrase_train.txt", w); err != nil {
+	// 	log.Fatalln(err)
+	// }
 
-	if err := PAWS("train.tsv", w); err != nil {
+	if err := PAWS("paws/train.tsv", w); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -229,7 +229,7 @@ func PAWS(name string, w *csv.Writer) error {
 			return err
 		}
 
-		if err := add(id2, s.Sentence2, s.Sentence2, s.Label); err != nil {
+		if err := add(id2, s.Sentence2, s.Sentence1, s.Label); err != nil {
 			return err
 		}
 	}
