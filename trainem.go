@@ -60,7 +60,7 @@ func initSample(sample *Sample, replaceUnknownTokens bool) (*MetaTree, []string,
 		return nil, nil, err
 	}
 
-	if Config.ReplaceSparseTokens {
+	if Config.ReplaceSparseTokens && !replaceUnknownTokens {
 		replaceSparseLabels(t.Leaves(), tokenOccurrences)
 	}
 
@@ -70,7 +70,7 @@ func initSample(sample *Sample, replaceUnknownTokens bool) (*MetaTree, []string,
 
 	e := strings.Split(sample.Sentence, " ")
 
-	if Config.ReplaceSparseTokens {
+	if Config.ReplaceSparseTokens && !replaceUnknownTokens {
 		replaceSparseTokens(e, tokenOccurrences)
 	}
 
