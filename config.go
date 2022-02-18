@@ -9,6 +9,7 @@ import (
 
 var Config = struct {
 	AllowTerminalInsertions     bool
+	ReplaceSparseTokens         bool
 	ModelErrorStrategy          string
 	TrainingDataPath            string
 	TrainingIterationLimit      int
@@ -29,7 +30,7 @@ func init() {
 	defer fmt.Printf("%+v\n\n", &Config)
 
 	Config.AllowTerminalInsertions, _, _ = parseEnvBool("ALLOW_TERMINAL_INSERTIONS", false)
-
+	Config.ReplaceSparseTokens, _, _ = parseEnvBool("REPLACE_SPARSE_TOKENS", false)
 	Config.ModelErrorStrategy, _ = parseEnvString("MODEL_ERROR_STRATEGY", ErrorStrategyReset)
 
 	validateConst(Config.ModelErrorStrategy, ErrorStrategyIgnore, ErrorStrategyKeep, ErrorStrategyReset)
@@ -40,9 +41,6 @@ func init() {
 	Config.TrainingComplexityLimit, _, _ = parseEnvInt("TRAINING_COMPLEXITY_LIMIT", -1)
 
 	Config.ConcurrentSampleEvaluations, _, _ = parseEnvInt("CONCURRENT_SAMPLE_EVALUATIONS", 1)
-
-	Config.CoreNLPUrl, _ = parseEnvString("CORE_NLP_URL", "")
-	Config.TreeMockDataPath, _ = parseEnvString("TREE_MOCK_DATA_PATH", "")
 
 	Config.InitModelPath, _ = parseEnvString("INIT_MODEL_PATH", "")
 	Config.InitModelIteration, _, _ = parseEnvInt("INIT_MODEL_ITERATION", 1)

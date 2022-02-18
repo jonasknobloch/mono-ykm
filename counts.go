@@ -16,14 +16,14 @@ func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) *big.Float {
 	sumI := big.NewFloat(0)
 
 	for _, i := range g.succ[n] {
-		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
+		if len(filter) > 0 && filter[0] != "" && i.n.Key() != filter[0] {
 			continue
 		}
 
 		sumR := big.NewFloat(0)
 
 		for _, r := range g.succ[i] {
-			if len(filter) > 1 && filter[1] != "" && r.r.key != filter[1] {
+			if len(filter) > 1 && filter[1] != "" && r.r.Key() != filter[1] {
 				continue
 			}
 
@@ -60,14 +60,14 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) *big.Float {
 	sumI := big.NewFloat(0)
 
 	for _, i := range g.succ[n] {
-		if len(filter) > 0 && filter[0] != "" && i.n.key != filter[0] {
+		if len(filter) > 0 && filter[0] != "" && i.n.Key() != filter[0] {
 			continue
 		}
 
 		sumT := big.NewFloat(0)
 
 		for _, t := range g.succ[i] {
-			if len(filter) > 1 && filter[1] != "" && t.t.key != filter[1] {
+			if len(filter) > 1 && filter[1] != "" && t.t.Key() != filter[1] {
 				continue
 			}
 

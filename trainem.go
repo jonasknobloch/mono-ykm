@@ -2,122 +2,31 @@ package main
 
 import (
 	"context"
-	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/jonasknobloch/jinn/pkg/corenlp"
-	"github.com/jonasknobloch/jinn/pkg/msrpc"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"golang.org/x/sync/semaphore"
-	"io"
 	"log"
-	"net/url"
-	"os"
 	"strconv"
+	"strings"
 	"sync"
 )
 
-var corpus *msrpc.Iterator
-var parser *corenlp.Client
-var tokenizer *corenlp.Client
-
-var pCache map[string]*MetaTree
-var tCache map[string][]string
+var corpus *Iterator
+var model *Model
 
 func init() {
 	initCorpus()
-	initParser()
-	initTokenizer()
-
-	pCache = make(map[string]*MetaTree)
-	tCache = make(map[string][]string)
 }
 
 func initCorpus() {
-	c, err := msrpc.NewIterator(Config.TrainingDataPath)
+	c, err := NewIterator(Config.TrainingDataPath)
 
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	corpus = c
-}
-
-func initParser() {
-	u, _ := url.Parse(Config.CoreNLPUrl)
-
-	c, err := corenlp.NewClient(u, corenlp.Properties{
-		Annotators:   corenlp.Annotators{corenlp.ParserAnnotator},
-		OutputFormat: corenlp.FormatJSON,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	parser = c
-}
-
-func initTokenizer() {
-	u, _ := url.Parse(Config.CoreNLPUrl)
-
-	c, err := corenlp.NewClient(u, corenlp.Properties{
-		Annotators:   corenlp.Annotators{corenlp.WordsToSentencesAnnotator},
-		OutputFormat: corenlp.FormatJSON,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	tokenizer = c
-}
-
-func tokenize(str string) ([]string, error) {
-	if _, ok := tCache[str]; !ok {
-		d, err := tokenizer.Annotate(str)
-
-		if err != nil {
-			return nil, err
-		}
-
-		e := make([]string, 0, len(d.Sentences[0].Tokens))
-
-		for _, t := range d.Sentences[0].Tokens {
-			e = append(e, t.Word)
-		}
-
-		tCache[str] = e
-	}
-
-	return tCache[str], nil
-}
-
-func parse(str string) (*MetaTree, error) {
-	if _, ok := pCache[str]; !ok {
-		doc, err := parser.Annotate(str)
-
-		if err != nil {
-			return nil, err
-		}
-
-		dec := tree.NewDecoder()
-		p := doc.Sentences[0].Parse
-
-		tr, err := dec.Decode(p)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if len(tr.Children) != 1 && tr.Label != "ROOT" {
-			return nil, errors.New("unexpected tree structure")
-		}
-
-		pCache[str] = NewMetaTree(tr.Children[0])
-	}
-
-	return pCache[str], nil
 }
 
 func initModel(samples int) *Model {
@@ -129,9 +38,9 @@ func initModel(samples int) *Model {
 
 	fmt.Println("Initializing weights...")
 
-	m.InitInsertionWeights(nDict)
-	m.InitReorderingWeights(rDict)
-	m.InitTranslationWeights(tDict)
+	m.InitTable(m.n, nDict)
+	m.InitTable(m.r, rDict)
+	m.InitTable(m.t, tDict)
 
 	if Config.ExportModel {
 		_ = Export(m.n, strconv.Itoa(0), "n")
@@ -142,17 +51,27 @@ func initModel(samples int) *Model {
 	return m
 }
 
-func initSample(sentence1, sentence2 string) (*MetaTree, []string, error) {
-	mt, err := parse(sentence1)
+func initSample(sample *Sample) (*MetaTree, []string, error) {
+	dec := tree.NewDecoder()
+
+	t, err := dec.Decode(sample.Tree)
 
 	if err != nil {
 		return nil, nil, err
 	}
 
-	e, err := tokenize(sentence2)
+	if Config.ReplaceSparseTokens && tokenOccurrences != nil {
+		replaceSparseLabels(t.Leaves(), tokenOccurrences)
+	}
 
-	if err != nil {
-		return nil, nil, err
+	mt := NewMetaTree(t)
+
+	mt.CollectFeatures()
+
+	e := strings.Split(sample.Sentence, " ")
+
+	if Config.ReplaceSparseTokens && tokenOccurrences != nil {
+		replaceSparseTokens(e, tokenOccurrences)
 	}
 
 	unreachable := !Config.AllowTerminalInsertions && mt.Tree.Size() < len(e)
@@ -171,65 +90,22 @@ func initSample(sentence1, sentence2 string) (*MetaTree, []string, error) {
 	return mt, e, nil
 }
 
-func importTrees(name string) error {
-	var r *csv.Reader
-
-	if f, err := os.Open(name); err != nil {
-		return fmt.Errorf("error opening file: %w", err)
-	} else {
-		r = csv.NewReader(f)
-		defer f.Close()
-	}
-
-	r.Comma = '\t'
-
-	_, err := r.Read()
-
-	if err != nil {
-		return err
-	}
-
-	dec := tree.NewDecoder()
-
-	for {
-		record, err := r.Read()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return err
-		}
-
-		tr, err := dec.Decode(record[1])
-
-		if err != nil {
-			return err
-		}
-
-		pCache[record[0]] = NewMetaTree(tr)
-	}
-
-	return nil
-}
-
 func importModel(name string) (*Model, error) {
 	fmt.Println("Importing model...")
 
-	n, err := Import(name + "-n.tsv")
+	n, err := Import(name + "-n.gob")
 
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := Import(name + "-r.tsv")
+	r, err := Import(name + "-r.gob")
 
 	if err != nil {
 		return nil, err
 	}
 
-	t, err := Import(name + "-t.tsv")
+	t, err := Import(name + "-t.gob")
 
 	if err != nil {
 		return nil, err
@@ -239,26 +115,21 @@ func importModel(name string) (*Model, error) {
 }
 
 func TrainEM(iterations, samples int) {
-	if Config.TreeMockDataPath != "" {
-		err := importTrees(Config.TreeMockDataPath)
-
-		if err != nil {
-			log.Fatal(err)
-		}
+	if Config.ReplaceSparseTokens {
+		initTokenOccurrences()
 	}
 
-	var m *Model
 	var o int
 
 	if Config.InitModelPath != "" {
-		if model, err := importModel(Config.InitModelPath); err != nil {
+		if m, err := importModel(Config.InitModelPath); err != nil {
 			log.Fatal(err)
 		} else {
-			m = model
+			model = m
 			o = Config.InitModelIteration
 		}
 	} else {
-		m = initModel(samples)
+		model = initModel(samples)
 	}
 
 	nC := NewCount()
@@ -288,19 +159,21 @@ func TrainEM(iterations, samples int) {
 		eval := 0
 		skip := 0
 
+		likelihood := float64(0)
+
 		for corpus.Next() && (samples == -1 || eval < samples) {
-			if !corpus.Sample().Quality {
+			if !corpus.Sample().Label {
 				continue
 			}
 
 			sample := corpus.Sample()
 
-			mt, f, err := initSample(sample.String1, sample.String2)
+			mt, e, err := initSample(sample)
 
 			if err != nil {
 				skip++
 
-				fmt.Printf("Skipped sample %d_%d (%s)\n", sample.ID1, sample.ID2, err)
+				fmt.Printf("Skipped sample %s (%s)\n", sample.ID, err)
 
 				continue
 			}
@@ -319,19 +192,23 @@ func TrainEM(iterations, samples int) {
 
 				w.Start()
 
-				g := NewGraph(mt, f, m)
+				g := NewGraph(mt, e, model)
+
+				p := g.pBeta[g.nodes[0]]
+
+				likelihood += p
 
 				if Config.ExportGraphs {
 					g.Draw()
 				}
 
-				nC.ForEach(m.n, g.InsertionCount)
-				nR.ForEach(m.r, g.ReorderingCount)
-				nT.ForEach(m.t, g.TranslationCount)
+				nC.ForEach(model.n, g.InsertionCount)
+				nR.ForEach(model.r, g.ReorderingCount)
+				nT.ForEach(model.t, g.TranslationCount)
 
 				w.Stop()
 
-				fmt.Printf("Evaluated sample %d_%d (eval: %d skip: %d) [%s]\n", sample.ID1, sample.ID2, eval, skip, w.Result())
+				fmt.Printf("Evaluated sample %s (eval: %d skip: %d) [%s] [%e]\n", sample.ID, eval, skip, w.Result(), p)
 			}()
 
 			eval++
@@ -343,14 +220,14 @@ func TrainEM(iterations, samples int) {
 
 		fmt.Printf("\nAdjusting model weights...\n\n")
 
-		m.UpdateWeights(nC, nR, nT)
+		model.UpdateWeights(nC, nR, nT)
 
 		watch.Lap("weights")
 
 		if Config.ExportModel {
-			_ = Export(m.n, strconv.Itoa(i), "n")
-			_ = Export(m.r, strconv.Itoa(i), "r")
-			_ = Export(m.t, strconv.Itoa(i), "t")
+			_ = Export(model.n, strconv.Itoa(i), "n")
+			_ = Export(model.r, strconv.Itoa(i), "r")
+			_ = Export(model.t, strconv.Itoa(i), "t")
 
 			watch.Lap("export")
 		}
@@ -360,6 +237,8 @@ func TrainEM(iterations, samples int) {
 		fmt.Printf("%s", watch)
 
 		watch.Reset()
+
+		fmt.Printf("\nCorpus likelihood: %e\n", likelihood)
 	}
 }
 
@@ -382,31 +261,31 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 
 	counter := 0
 
+	initCorpus()
+
 	for corpus.Next() && (samples == -1 || counter < samples) {
 		sample := corpus.Sample()
 
-		if !sample.Quality {
+		if !sample.Label {
 			continue
 		}
 
-		// TODO consider both directions
-
-		mt, e, err := initSample(sample.String1, sample.String2)
+		mt, e, err := initSample(sample)
 
 		if err != nil {
 			continue
 		}
 
 		mt.Tree.Walk(func(st *tree.Tree) {
-			for _, i := range Insertions(st, e, mt.meta[st][0], true) {
+			for _, i := range Insertions(st, e, mt.Feature(st, InsertionFeature), true) {
 				addParameter(insertions, i.Feature(), i.Key())
 			}
 
-			for _, r := range Reorderings(st, mt.meta[st][1]) {
+			for _, r := range Reorderings(st, mt.Feature(st, ReorderingFeature)) {
 				addParameter(reorderings, r.Feature(), r.Key())
 			}
 
-			for _, t := range Translations(st, e, mt.meta[st][2]) {
+			for _, t := range Translations(st, e, mt.Feature(st, TranslationFeature)) {
 				addParameter(translations, t.Feature(), t.Key())
 			}
 		})

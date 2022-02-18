@@ -6,11 +6,11 @@ import (
 )
 
 type Graph struct {
-	root   *Node
-	nodes  []*Node
-	edges  map[[2]*Node]*big.Float
-	pred   map[*Node][]*Node
-	succ   map[*Node][]*Node
+	nodes []*Node
+	edges map[[2]*Node]*big.Float
+	pred  map[*Node][]*Node
+	succ  map[*Node][]*Node
+
 	pAlpha map[*Node]*big.Float
 	pBeta  map[*Node]*big.Float
 
@@ -22,14 +22,20 @@ type Graph struct {
 }
 
 func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
-	n := &Node{tree: mt.Tree, f: f, k: 0, l: len(f), nType: MajorNode}
+	n := &Node{
+		tree:  mt.Tree,
+		f:     f,
+		k:     0,
+		l:     len(f),
+		nType: MajorNode,
+	}
 
 	g := &Graph{
-		root:   n,
-		nodes:  make([]*Node, 0),
-		edges:  make(map[[2]*Node]*big.Float),
-		pred:   make(map[*Node][]*Node),
-		succ:   make(map[*Node][]*Node),
+		nodes: make([]*Node, 0),
+		edges: make(map[[2]*Node]*big.Float),
+		pred:  make(map[*Node][]*Node),
+		succ:  make(map[*Node][]*Node),
+
 		pAlpha: make(map[*Node]*big.Float),
 		pBeta:  make(map[*Node]*big.Float),
 
@@ -41,7 +47,7 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 	}
 
 	g.AddNode(n)
-	g.Expand(n, m, mt.meta)
+	g.Expand(n, m, mt)
 	g.Beta(n)
 
 	for _, node := range g.nodes {
@@ -146,14 +152,8 @@ func partitionings(reordering *Node) [][]int {
 	return p(reordering.l, len(reordering.tree.Children), make([][]int, 0))
 }
 
-func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
-	feats, ok := fm[n.tree]
-
-	if !ok {
-		panic("unknown feature")
-	}
-
-	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], feats[InsertionFeature], false) {
+func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
+	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature), false) {
 		insertion := op.(Insertion)
 
 		k := n.k
@@ -182,7 +182,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 		g.AddOperation(insertion, n)
 
 		if len(n.tree.Children) == 0 {
-			translation := NewTranslation(i.Substring(), feats[TranslationFeature])
+			translation := NewTranslation(i.Substring(), mt.Feature(n.tree, TranslationFeature))
 
 			f := &Node{
 				n:     i.n,
@@ -201,7 +201,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 			continue
 		}
 
-		for _, op := range Reorderings(n.tree, feats[ReorderingFeature]) {
+		for _, op := range Reorderings(n.tree, mt.Feature(n.tree, ReorderingFeature)) {
 			reordering := op.(Reordering)
 
 			r := &Node{
@@ -258,7 +258,7 @@ func (g *Graph) Expand(n *Node, m *Model, fm map[*tree.Tree][3]string) {
 						g.major[c][sub] = major
 
 						g.AddNode(major)
-						g.Expand(major, m, fm)
+						g.Expand(major, m, mt)
 					}
 
 					g.AddEdge(p, g.major[c][sub], big.NewFloat(1))
@@ -273,7 +273,7 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 		return a
 	}
 
-	if n == g.root {
+	if n == g.nodes[0] {
 		g.pAlpha[n] = big.NewFloat(1)
 
 		return g.pAlpha[n]

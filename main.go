@@ -8,6 +8,10 @@ import (
 )
 
 var cpuProfile = flag.String("cpuprofile", "", "write cpu profile to file")
+var execMode = flag.String("m", "train", "choose execution mode")
+
+const ModeTrain = "train"
+const ModeEvaluate = "evaluate"
 
 func main() {
 	flag.Parse()
@@ -26,5 +30,10 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	TrainEM(Config.TrainingIterationLimit, Config.TrainingSampleLimit)
+	switch *execMode {
+	case ModeTrain:
+		TrainEM(Config.TrainingIterationLimit, Config.TrainingSampleLimit)
+	case ModeEvaluate:
+		Evaluate()
+	}
 }

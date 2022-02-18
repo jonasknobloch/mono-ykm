@@ -1,75 +1,29 @@
 package main
 
 import (
-	"encoding/csv"
+	"encoding/gob"
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
-func Export(p map[string]map[string]*big.Float, stubs ...string) error {
-	if len(p) == 0 {
+func Export(t map[string]map[string]float64, stubs ...string) error {
+	if len(t) == 0 {
 		return nil
 	}
 
-	name := fmt.Sprintf("model_%s.tsv", strings.Join(stubs, "-"))
-
-	f, err := os.Create(filepath.Join(Config.ModelExportDirectory, name))
+	name := fmt.Sprintf("model_%s.gob", strings.Join(stubs, "-"))
+	file, err := os.Create(filepath.Join(Config.ModelExportDirectory, name))
 
 	if err != nil {
 		return fmt.Errorf("error creating file: %w", err)
 	}
 
-	defer f.Close()
+	enc := gob.NewEncoder(file)
 
-	w := csv.NewWriter(f)
-
-	w.Comma = '\t'
-
-	features := make([]string, 0)
-	keys := make([]string, 0)
-
-	seen := make(map[string]struct{})
-
-	for feature := range p {
-		features = append(features, feature)
-
-		for key := range p[feature] {
-			if _, ok := seen[key]; ok {
-				continue
-			}
-
-			keys = append(keys, key)
-			seen[key] = struct{}{}
-		}
-	}
-
-	sort.Strings(features)
-	sort.Strings(keys)
-
-	records := make([][]string, 0)
-
-	records = append(records, append([]string{"X"}, keys...))
-
-	for _, feature := range features {
-		record := []string{feature}
-
-		for _, key := range keys {
-			if value, ok := p[feature][key]; ok {
-				record = append(record, value.String())
-			} else {
-				record = append(record, "")
-			}
-		}
-
-		records = append(records, record)
-	}
-
-	if err := w.WriteAll(records); err != nil {
-		return fmt.Errorf("error writing csv: %w", err)
+	if err := enc.Encode(t); err != nil {
+		return fmt.Errorf("error encoding table: %w", err)
 	}
 
 	return nil

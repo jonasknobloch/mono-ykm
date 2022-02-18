@@ -23,32 +23,14 @@ func NewModel() *Model {
 	}
 }
 
-func (m *Model) InitInsertionWeights(dictionary map[string]map[string]int) {
-	for feature, keys := range dictionary {
-		m.n[feature] = make(map[string]*big.Float, len(keys))
+func (m *Model) InitTable(t map[string]map[string]*big.Float, d map[string]map[string]int) {
+	for feature, keys := range d {
+		t[feature] = make(map[string]*big.Float, len(keys))
+
+		val := big.NewFloat(1 / float64(len(keys)))
 
 		for key := range keys {
-			m.n[feature][key] = big.NewFloat(1 / float64(len(keys)))
-		}
-	}
-}
-
-func (m *Model) InitReorderingWeights(dictionary map[string]map[string]int) {
-	for feature, keys := range dictionary {
-		m.r[feature] = make(map[string]*big.Float, len(keys))
-
-		for key := range keys {
-			m.r[feature][key] = big.NewFloat(1 / float64(len(keys)))
-		}
-	}
-}
-
-func (m *Model) InitTranslationWeights(dictionary map[string]map[string]int) {
-	for feature, keys := range dictionary {
-		m.t[feature] = make(map[string]*big.Float, len(keys))
-
-		for key := range keys {
-			m.t[feature][key] = big.NewFloat(1 / float64(len(keys)))
+			t[feature][key] = val
 		}
 	}
 }
@@ -67,7 +49,23 @@ func (m *Model) Table(op Operation) map[string]map[string]*big.Float {
 }
 
 func (m *Model) Probability(op Operation) *big.Float {
-	return m.Table(op)[op.Feature()][op.Key()]
+	if p, ok := m.Table(op)[op.Feature()][op.Key()]; ok {
+		return p
+	}
+
+	if p, ok := m.Table(op)[op.Feature()][op.UnknownKey()]; ok {
+		return p
+	}
+
+	if p, ok := m.Table(op)[op.UnknownFeature()][op.Key()]; ok {
+		return p
+	}
+
+	if p, ok := m.Table(op)[op.UnknownFeature()][op.UnknownKey()]; ok {
+		return p
+	}
+
+	return big.NewFloat(0)
 }
 
 func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) {

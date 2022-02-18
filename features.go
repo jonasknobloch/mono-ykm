@@ -2,36 +2,53 @@ package main
 
 import "github.com/jonasknobloch/jinn/pkg/tree"
 
-func nFeature(p, t *tree.Tree) string {
-	var f string
+func nFeature(p, st *tree.Tree, replaceLeafs bool) string {
+	var feature string
+	var label string
+
+	if replaceLeafs && len(st.Children) == 0 {
+		label = UnknownToken
+	} else {
+		label = st.Label
+	}
 
 	if p == nil {
-		f = "ROOT " + t.Label
+		feature = "ROOT " + label
 	} else {
-		f = p.Label + " " + t.Label
+		feature = p.Label + " " + label
 	}
 
-	return f
+	return feature
 }
 
-func rFeature(t *tree.Tree) string {
-	if len(t.Children) == 0 {
+func rFeature(st *tree.Tree, replaceLeafs bool) string {
+	if len(st.Children) == 0 {
 		return ""
 	}
 
-	var f string
+	var feature string
 
-	for _, c := range t.Children {
-		f += " " + c.Label
+	for _, c := range st.Children {
+		feature += " "
+
+		if replaceLeafs && len(c.Children) == 0 {
+			feature += UnknownToken
+		} else {
+			feature += c.Label
+		}
 	}
 
-	return f[1:]
+	return feature[1:]
 }
 
-func tFeature(t *tree.Tree) string {
-	if len(t.Children) != 0 {
+func tFeature(st *tree.Tree, replaceLeafs bool) string {
+	if len(st.Children) != 0 {
 		return ""
 	}
 
-	return t.Label
+	if replaceLeafs {
+		return UnknownToken
+	}
+
+	return st.Label
 }

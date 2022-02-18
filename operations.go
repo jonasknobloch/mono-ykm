@@ -8,8 +8,11 @@ import (
 )
 
 type Operation interface {
-	Key() string
 	Feature() string
+	Key() string
+
+	UnknownFeature() string
+	UnknownKey() string
 }
 
 type InsertPosition string
@@ -19,36 +22,52 @@ const Left InsertPosition = "l"
 const Right InsertPosition = "r"
 
 type Insertion struct {
-	key      string
-	feature  string
+	feature [2]string
+	key     [2]string
+
 	Position InsertPosition
 	Word     string
 }
 
-func NewInsertion(pos InsertPosition, w, f string) Insertion {
-	k := string(pos)
+func NewInsertion(pos InsertPosition, word string, feature [2]string) Insertion {
+	key := func(word string) string {
+		k := string(pos)
 
-	if pos != None {
-		k += " " + w
+		if pos != None {
+			k += " " + word
+		}
+
+		return k
 	}
 
-	return Insertion{
-		key:      k,
-		feature:  f,
+	n := Insertion{
+		feature:  feature,
 		Position: pos,
-		Word:     w,
+		Word:     word,
 	}
-}
 
-func (i Insertion) Key() string {
-	return i.key
+	n.key = [2]string{key(word), key(UnknownToken)}
+
+	return n
 }
 
 func (i Insertion) Feature() string {
-	return i.feature
+	return i.feature[0]
 }
 
-func Insertions(t *tree.Tree, d []string, f string, dict bool) []Operation {
+func (i Insertion) Key() string {
+	return i.key[0]
+}
+
+func (i Insertion) UnknownFeature() string {
+	return i.feature[1]
+}
+
+func (i Insertion) UnknownKey() string {
+	return i.key[1]
+}
+
+func Insertions(t *tree.Tree, d []string, f [2]string, dict bool) []Operation {
 	ops := make([]Operation, 0)
 
 	if dict {
@@ -84,12 +103,13 @@ func Insertions(t *tree.Tree, d []string, f string, dict bool) []Operation {
 }
 
 type Reordering struct {
-	key        string
+	feature [2]string
+	key     [2]string
+
 	Reordering []int
-	feature    string
 }
 
-func NewReordering(p []int, f string) Reordering {
+func NewReordering(reordering []int, feature [2]string) Reordering {
 	join := func(p []int) string {
 		sb := strings.Builder{}
 
@@ -101,22 +121,35 @@ func NewReordering(p []int, f string) Reordering {
 		return sb.String()[1:]
 	}
 
-	return Reordering{
-		feature:    f,
-		key:        join(p),
-		Reordering: p,
+	r := Reordering{
+		feature:    feature,
+		Reordering: reordering,
 	}
-}
 
-func (r Reordering) Key() string {
-	return r.key
+	key := join(reordering)
+
+	r.key = [2]string{key, key}
+
+	return r
 }
 
 func (r Reordering) Feature() string {
-	return r.feature
+	return r.feature[0]
 }
 
-func Reorderings(t *tree.Tree, f string) []Operation {
+func (r Reordering) Key() string {
+	return r.key[0]
+}
+
+func (r Reordering) UnknownFeature() string {
+	return r.feature[1]
+}
+
+func (r Reordering) UnknownKey() string {
+	return r.key[1]
+}
+
+func Reorderings(t *tree.Tree, f [2]string) []Operation {
 	ops := make([]Operation, 0)
 
 	if len(t.Children) == 0 {
@@ -133,28 +166,40 @@ func Reorderings(t *tree.Tree, f string) []Operation {
 }
 
 type Translation struct {
-	key     string
-	feature string
-	Word    string
+	feature [2]string
+	key     [2]string
+
+	Word string
 }
 
-func NewTranslation(w, f string) Translation {
-	return Translation{
-		key:     w,
-		feature: f,
-		Word:    w,
+func NewTranslation(word string, feature [2]string) Translation {
+	t := Translation{
+		feature: feature,
+		Word:    word,
 	}
-}
 
-func (t Translation) Key() string {
-	return t.key
+	t.key = [2]string{word, UnknownToken}
+
+	return t
 }
 
 func (t Translation) Feature() string {
-	return t.feature
+	return t.feature[0]
 }
 
-func Translations(t *tree.Tree, d []string, f string) []Operation {
+func (t Translation) Key() string {
+	return t.key[0]
+}
+
+func (t Translation) UnknownFeature() string {
+	return t.feature[1]
+}
+
+func (t Translation) UnknownKey() string {
+	return t.key[1]
+}
+
+func Translations(t *tree.Tree, d []string, f [2]string) []Operation {
 	ops := make([]Operation, 0)
 
 	if len(t.Children) != 0 {
