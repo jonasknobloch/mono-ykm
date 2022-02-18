@@ -65,7 +65,7 @@ func (m *Model) Probability(op Operation) *big.Float {
 		return p
 	}
 
-	return big.NewFloat(0)
+	return new(big.Float)
 }
 
 func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) {
@@ -77,14 +77,14 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 
 			sum := c.Sum(feature)
 
-			if sum.Cmp(big.NewFloat(0)) == 0 {
+			if sum.Cmp(new(big.Float)) == 0 {
 				fmt.Printf("Invalid probability distribution for %s\n", feature)
 
 				var val *big.Float
 
 				switch Config.ModelErrorStrategy {
 				case ErrorStrategyIgnore:
-					val = big.NewFloat(0)
+					val = new(big.Float)
 				case ErrorStrategyReset:
 					val = big.NewFloat(1 / float64(c.Size(feature)))
 				case ErrorStrategyKeep:
@@ -102,7 +102,7 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 				val := c.Get(feature, key)
 
 				if val == nil {
-					p[feature][key] = big.NewFloat(0)
+					p[feature][key].SetFloat64(0)
 					continue
 				}
 

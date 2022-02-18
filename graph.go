@@ -279,7 +279,7 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 		return g.pAlpha[n]
 	}
 
-	sum := big.NewFloat(0)
+	sum := new(big.Float)
 
 	for _, partitioning := range g.pred[n] {
 		prod := big.NewFloat(1)

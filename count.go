@@ -26,7 +26,7 @@ func (c *Count) Add(feature, key string, value *big.Float) {
 	}
 
 	if _, ok := c.val[feature][key]; !ok {
-		c.val[feature][key] = big.NewFloat(0)
+		c.val[feature][key] = new(big.Float)
 	}
 
 	c.val[feature][key].Add(c.val[feature][key], value)
@@ -51,7 +51,7 @@ func (c *Count) ForEach(p map[string]map[string]*big.Float, f func(string, strin
 }
 
 func (c *Count) Sum(feature string) *big.Float {
-	sum := big.NewFloat(0)
+	sum := new(big.Float)
 
 	for _, value := range c.val[feature] {
 		sum.Add(sum, value)
@@ -67,7 +67,7 @@ func (c *Count) Size(feature string) int {
 func (c *Count) Reset() {
 	for feature, keys := range c.val {
 		for key := range keys {
-			c.val[feature][key] = big.NewFloat(0)
+			c.val[feature][key].SetFloat64(0)
 		}
 	}
 }

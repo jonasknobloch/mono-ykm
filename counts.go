@@ -13,21 +13,21 @@ func (g *Graph) InsideWeightsInterior(n *Node, filter ...string) *big.Float {
 		panic("not an interior node node")
 	}
 
-	sumI := big.NewFloat(0)
+	sumI := new(big.Float)
 
 	for _, i := range g.succ[n] {
 		if len(filter) > 0 && filter[0] != "" && i.n.Key() != filter[0] {
 			continue
 		}
 
-		sumR := big.NewFloat(0)
+		sumR := new(big.Float)
 
 		for _, r := range g.succ[i] {
 			if len(filter) > 1 && filter[1] != "" && r.r.Key() != filter[1] {
 				continue
 			}
 
-			sumP := big.NewFloat(0)
+			sumP := new(big.Float)
 
 			for _, p := range g.succ[r] {
 				prod := big.NewFloat(1)
@@ -57,14 +57,14 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) *big.Float {
 		panic("not a terminal node")
 	}
 
-	sumI := big.NewFloat(0)
+	sumI := new(big.Float)
 
 	for _, i := range g.succ[n] {
 		if len(filter) > 0 && filter[0] != "" && i.n.Key() != filter[0] {
 			continue
 		}
 
-		sumT := big.NewFloat(0)
+		sumT := new(big.Float)
 
 		for _, t := range g.succ[i] {
 			if len(filter) > 1 && filter[1] != "" && t.t.Key() != filter[1] {
@@ -81,7 +81,7 @@ func (g *Graph) InsideWeightsTerminal(n *Node, filter ...string) *big.Float {
 }
 
 func (g *Graph) InsertionCount(feature, key string) (*big.Float, bool) {
-	sum := big.NewFloat(0)
+	sum := new(big.Float)
 
 	var ms []*Node
 	var ok bool
@@ -110,7 +110,7 @@ func (g *Graph) InsertionCount(feature, key string) (*big.Float, bool) {
 }
 
 func (g *Graph) ReorderingCount(feature, key string) (*big.Float, bool) {
-	sum := big.NewFloat(0)
+	sum := new(big.Float)
 
 	var ms []*Node
 	var ok bool
@@ -134,7 +134,7 @@ func (g *Graph) ReorderingCount(feature, key string) (*big.Float, bool) {
 }
 
 func (g *Graph) TranslationCount(feature, key string) (*big.Float, bool) {
-	sum := big.NewFloat(0)
+	sum := new(big.Float)
 
 	var ms []*Node
 	var ok bool
