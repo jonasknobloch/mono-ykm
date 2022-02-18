@@ -30,7 +30,7 @@ func (m *Model) InitTable(t map[string]map[string]*big.Float, d map[string]map[s
 		val := big.NewFloat(1 / float64(len(keys)))
 
 		for key := range keys {
-			t[feature][key] = val
+			t[feature][key] = new(big.Float).Copy(val)
 		}
 	}
 }
