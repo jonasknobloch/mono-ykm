@@ -85,6 +85,8 @@ func main() {
 	if err := PAWS("paws/train.tsv", w); err != nil {
 		log.Fatalln(err)
 	}
+
+	w.Flush()
 }
 
 func parse(s string) (string, error) {
