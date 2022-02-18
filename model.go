@@ -77,7 +77,7 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 
 			sum := c.Sum(feature)
 
-			if sum == big.NewFloat(0) {
+			if sum.Cmp(big.NewFloat(0)) == 0 {
 				fmt.Printf("Invalid probability distribution for %s\n", feature)
 
 				var val *big.Float
