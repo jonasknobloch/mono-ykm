@@ -6,6 +6,7 @@ import (
 	"golang.org/x/sync/semaphore"
 	"log"
 	"math"
+	"math/big"
 	"sync"
 )
 
@@ -16,14 +17,14 @@ func Evaluate() {
 		model = m
 	}
 
-	Verify(model, 1e-5)
+	Verify(model, big.NewFloat(1e-5))
 
 	tp := 0
 	fp := 0
 	tn := 0
 	fn := 0
 
-	pth := math.SmallestNonzeroFloat64
+	pth := big.NewFloat(math.SmallestNonzeroFloat64)
 
 	counter := 0
 
@@ -58,19 +59,19 @@ func Evaluate() {
 			g := NewGraph(mt, e, model)
 			p := g.pBeta[g.nodes[0]]
 
-			if sample.Label && p > pth {
+			if sample.Label && p.Cmp(pth) == 1 {
 				tp++
 			}
 
-			if !sample.Label && p > pth {
+			if !sample.Label && p.Cmp(pth) == 1 {
 				fp++
 			}
 
-			if !sample.Label && p < pth {
+			if !sample.Label && p.Cmp(pth) == -1 {
 				tn++
 			}
 
-			if sample.Label && p < pth {
+			if sample.Label && p.Cmp(pth) == -1 {
 				fn++
 			}
 
@@ -90,16 +91,19 @@ func Evaluate() {
 	fmt.Printf("Precision: %e Recall: %e F1: %e", precision, recall, f)
 }
 
-func Verify(model *Model, threshold float64) {
-	verifyTable := func(table map[string]map[string]float64) {
+func Verify(model *Model, threshold *big.Float) {
+	verifyTable := func(table map[string]map[string]*big.Float) {
 		for k, v := range table {
-			sum := float64(0)
+			sum := new(big.Float)
 
 			for _, p := range v {
-				sum += p
+				sum.Add(sum, p)
 			}
 
-			if sum > float64(1)+threshold || sum < float64(1)-threshold {
+			upper := new(big.Float).Add(big.NewFloat(1), threshold)
+			lower := new(big.Float).Sub(big.NewFloat(1), threshold)
+
+			if sum.Cmp(upper) == 1 || sum.Cmp(lower) == -1 {
 				fmt.Println(k, sum)
 			}
 		}

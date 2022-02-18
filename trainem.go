@@ -7,6 +7,7 @@ import (
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"golang.org/x/sync/semaphore"
 	"log"
+	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -159,7 +160,7 @@ func TrainEM(iterations, samples int) {
 		eval := 0
 		skip := 0
 
-		likelihood := float64(0)
+		likelihood := new(big.Float)
 
 		for corpus.Next() && (samples == -1 || eval < samples) {
 			if !corpus.Sample().Label {
@@ -196,7 +197,7 @@ func TrainEM(iterations, samples int) {
 
 				p := g.pBeta[g.nodes[0]]
 
-				likelihood += p
+				likelihood.Add(likelihood, p)
 
 				if Config.ExportGraphs {
 					g.Draw()

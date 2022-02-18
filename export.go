@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/gob"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-func Export(t map[string]map[string]float64, stubs ...string) error {
+func Export(t map[string]map[string]*big.Float, stubs ...string) error {
 	if len(t) == 0 {
 		return nil
 	}
