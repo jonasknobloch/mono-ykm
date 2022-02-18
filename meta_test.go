@@ -12,7 +12,7 @@ func TestNewMetaTree(t *testing.T) {
 
 	mt := NewMetaTree(tr)
 
-	mt.CollectFeatures(false)
+	mt.CollectFeatures()
 
 	mt.Tree.Walk(func(st *tree.Tree) {
 		if a, ok := mt.Annotation(st); ok {

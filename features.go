@@ -2,90 +2,53 @@ package main
 
 import "github.com/jonasknobloch/jinn/pkg/tree"
 
-func nFeature(p, st *tree.Tree, replaceUnknownTokens bool) string {
-	feature := func(p, st *tree.Tree) string {
-		var f string
+func nFeature(p, st *tree.Tree, replaceLeafs bool) string {
+	var feature string
+	var label string
 
-		if p == nil {
-			f = "ROOT " + st.Label
+	if replaceLeafs && len(st.Children) == 0 {
+		label = UnknownToken
+	} else {
+		label = st.Label
+	}
+
+	if p == nil {
+		feature = "ROOT " + label
+	} else {
+		feature = p.Label + " " + label
+	}
+
+	return feature
+}
+
+func rFeature(st *tree.Tree, replaceLeafs bool) string {
+	if len(st.Children) == 0 {
+		return ""
+	}
+
+	var feature string
+
+	for _, c := range st.Children {
+		feature += " "
+
+		if replaceLeafs && len(c.Children) == 0 {
+			feature += UnknownToken
 		} else {
-			f = p.Label + " " + st.Label
-		}
-
-		return f
-	}
-
-	f := feature(p, st)
-
-	if f == "" || !replaceUnknownTokens {
-		return f
-	}
-
-	if _, ok := model.n[f]; !ok {
-		if len(st.Children) == 0 {
-			st.Label = UnknownToken
-
-			f = feature(p, st)
+			feature += c.Label
 		}
 	}
 
-	return f
+	return feature[1:]
 }
 
-func rFeature(st *tree.Tree, replaceUnknownTokens bool) string {
-	feature := func(st *tree.Tree) string {
-		if len(st.Children) == 0 {
-			return ""
-		}
-
-		var f string
-
-		for _, c := range st.Children {
-			f += " " + c.Label
-		}
-
-		return f[1:]
+func tFeature(st *tree.Tree, replaceLeafs bool) string {
+	if len(st.Children) != 0 {
+		return ""
 	}
 
-	f := feature(st)
-
-	if f == "" || !replaceUnknownTokens {
-		return f
+	if replaceLeafs {
+		return UnknownToken
 	}
 
-	if _, ok := model.r[f]; !ok {
-		for _, c := range st.Children {
-			if len(st.Children) == 0 {
-				c.Label = UnknownToken
-			}
-		}
-
-		f = feature(st)
-	}
-
-	return f
-}
-
-func tFeature(st *tree.Tree, replaceUnknownTokens bool) string {
-	feature := func(st *tree.Tree) string {
-		if len(st.Children) != 0 {
-			return ""
-		}
-
-		return st.Label
-	}
-
-	f := feature(st)
-
-	if f == "" || !replaceUnknownTokens {
-		return f
-	}
-
-	if _, ok := model.t[f]; !ok {
-		st.Label = UnknownToken
-
-		f = feature(st)
-	}
-
-	return f
+	return st.Label
 }

@@ -51,7 +51,7 @@ func initModel(samples int) *Model {
 	return m
 }
 
-func initSample(sample *Sample, replaceUnknownTokens bool) (*MetaTree, []string, error) {
+func initSample(sample *Sample) (*MetaTree, []string, error) {
 	dec := tree.NewDecoder()
 
 	t, err := dec.Decode(sample.Tree)
@@ -60,17 +60,17 @@ func initSample(sample *Sample, replaceUnknownTokens bool) (*MetaTree, []string,
 		return nil, nil, err
 	}
 
-	if Config.ReplaceSparseTokens && !replaceUnknownTokens {
+	if Config.ReplaceSparseTokens && tokenOccurrences != nil {
 		replaceSparseLabels(t.Leaves(), tokenOccurrences)
 	}
 
 	mt := NewMetaTree(t)
 
-	mt.CollectFeatures(replaceUnknownTokens)
+	mt.CollectFeatures()
 
 	e := strings.Split(sample.Sentence, " ")
 
-	if Config.ReplaceSparseTokens && !replaceUnknownTokens {
+	if Config.ReplaceSparseTokens && tokenOccurrences != nil {
 		replaceSparseTokens(e, tokenOccurrences)
 	}
 
@@ -166,7 +166,7 @@ func TrainEM(iterations, samples int) {
 
 			sample := corpus.Sample()
 
-			mt, e, err := initSample(sample, false)
+			mt, e, err := initSample(sample)
 
 			if err != nil {
 				skip++
@@ -262,22 +262,22 @@ func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[s
 			continue
 		}
 
-		mt, e, err := initSample(sample, false)
+		mt, e, err := initSample(sample)
 
 		if err != nil {
 			continue
 		}
 
 		mt.Tree.Walk(func(st *tree.Tree) {
-			for _, i := range Insertions(st, e, mt.meta[st][0], true) {
+			for _, i := range Insertions(st, e, mt.Feature(st, InsertionFeature), true) {
 				addParameter(insertions, i.Feature(), i.Key())
 			}
 
-			for _, r := range Reorderings(st, mt.meta[st][1]) {
+			for _, r := range Reorderings(st, mt.Feature(st, ReorderingFeature)) {
 				addParameter(reorderings, r.Feature(), r.Key())
 			}
 
-			for _, t := range Translations(st, e, mt.meta[st][2]) {
+			for _, t := range Translations(st, e, mt.Feature(st, TranslationFeature)) {
 				addParameter(translations, t.Feature(), t.Key())
 			}
 		})

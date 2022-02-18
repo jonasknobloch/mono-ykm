@@ -39,7 +39,7 @@ func Evaluate() {
 			continue
 		}
 
-		mt, e, err := initSample(sample, true)
+		mt, e, err := initSample(sample)
 
 		if err != nil {
 			continue

@@ -46,32 +46,23 @@ func (m *Model) Table(op Operation) map[string]map[string]float64 {
 }
 
 func (m *Model) Probability(op Operation) float64 {
-	p := float64(0)
-
 	if p, ok := m.Table(op)[op.Feature()][op.Key()]; ok {
 		return p
 	}
 
-	if _, ok := m.Table(op)[op.Feature()]; !ok {
+	if p, ok := m.Table(op)[op.Feature()][op.UnknownKey()]; ok {
 		return p
 	}
 
-	var key string
-
-	switch v := op.(type) {
-	case Insertion:
-		key = string(v.Position) + " " + UnknownToken // TODO use helper
-	case Translation:
-		key = UnknownToken // TODO use helper
-	default:
+	if p, ok := m.Table(op)[op.UnknownFeature()][op.Key()]; ok {
 		return p
 	}
 
-	if p, ok := m.Table(op)[op.Feature()][key]; ok {
+	if p, ok := m.Table(op)[op.UnknownFeature()][op.UnknownKey()]; ok {
 		return p
 	}
 
-	return p
+	return 0
 }
 
 func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) {

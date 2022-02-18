@@ -32,11 +32,11 @@ func (g *Graph) Draw(stubs ...string) {
 		_, _ = f.WriteString("label=\"")
 		_, _ = f.WriteString(fmt.Sprintf("%s ", n.tree.Label))
 
-		if n.n.key != "" {
+		if n.n.Key() != "" {
 			_, _ = f.WriteString(fmt.Sprintf("| %s ", n.n.key))
 		}
 
-		if n.r.key != "" {
+		if n.r.Key() != "" {
 			_, _ = f.WriteString(fmt.Sprintf("| %s ", n.r.key))
 		}
 
@@ -44,7 +44,7 @@ func (g *Graph) Draw(stubs ...string) {
 			_, _ = f.WriteString(fmt.Sprintf("| %v ", n.p))
 		}
 
-		if n.t.key != "" {
+		if n.t.Key() != "" {
 			_, _ = f.WriteString(fmt.Sprintf("| %s ", n.t.key))
 		}
 
