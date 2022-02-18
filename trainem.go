@@ -159,6 +159,8 @@ func TrainEM(iterations, samples int) {
 		eval := 0
 		skip := 0
 
+		likelihood := float64(0)
+
 		for corpus.Next() && (samples == -1 || eval < samples) {
 			if !corpus.Sample().Label {
 				continue
@@ -192,6 +194,10 @@ func TrainEM(iterations, samples int) {
 
 				g := NewGraph(mt, e, model)
 
+				p := g.pBeta[g.nodes[0]]
+
+				likelihood += p
+
 				if Config.ExportGraphs {
 					g.Draw()
 				}
@@ -202,7 +208,7 @@ func TrainEM(iterations, samples int) {
 
 				w.Stop()
 
-				fmt.Printf("Evaluated sample %s (eval: %d skip: %d) [%s]\n", sample.ID, eval, skip, w.Result())
+				fmt.Printf("Evaluated sample %s (eval: %d skip: %d) [%s] [%e]\n", sample.ID, eval, skip, w.Result(), p)
 			}()
 
 			eval++
@@ -231,6 +237,8 @@ func TrainEM(iterations, samples int) {
 		fmt.Printf("%s", watch)
 
 		watch.Reset()
+
+		fmt.Printf("\nCorpus likelihood: %e\n", likelihood)
 	}
 }
 
