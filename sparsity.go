@@ -44,7 +44,7 @@ func countTokenOccurrences() map[string]int {
 
 func replaceSparseLabels(leaves []*tree.Tree, occurrences map[string]int) {
 	for _, leaf := range leaves {
-		if occurrences[leaf.Label] > 1 {
+		if occurrences[leaf.Label] > Config.SparseTokenThreshold {
 			continue
 		}
 
@@ -54,7 +54,7 @@ func replaceSparseLabels(leaves []*tree.Tree, occurrences map[string]int) {
 
 func replaceSparseTokens(tokens []string, occurrences map[string]int) {
 	for i, token := range tokens {
-		if occurrences[token] > 1 {
+		if occurrences[token] > Config.SparseTokenThreshold {
 			continue
 		}
 

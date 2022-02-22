@@ -10,6 +10,7 @@ import (
 var Config = struct {
 	AllowTerminalInsertions     bool
 	ReplaceSparseTokens         bool
+	SparseTokenThreshold        int
 	ModelErrorStrategy          string
 	TrainingDataPath            string
 	TrainingIterationLimit      int
@@ -31,6 +32,7 @@ func init() {
 
 	Config.AllowTerminalInsertions, _, _ = parseEnvBool("ALLOW_TERMINAL_INSERTIONS", false)
 	Config.ReplaceSparseTokens, _, _ = parseEnvBool("REPLACE_SPARSE_TOKENS", false)
+	Config.SparseTokenThreshold, _, _ = parseEnvInt("SPARSE_TOKEN_THRESHOLD", 1)
 	Config.ModelErrorStrategy, _ = parseEnvString("MODEL_ERROR_STRATEGY", ErrorStrategyReset)
 
 	validateConst(Config.ModelErrorStrategy, ErrorStrategyIgnore, ErrorStrategyKeep, ErrorStrategyReset)
