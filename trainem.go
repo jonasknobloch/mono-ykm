@@ -220,7 +220,7 @@ func TrainEM(iterations, samples int) {
 
 		watch.Lap("samples")
 
-		fmt.Printf("\nAdjusting model weights...\n\n")
+		fmt.Printf("\nAdjusting model weights...\n")
 
 		model.UpdateWeights(nC, nR, nT)
 
@@ -234,12 +234,6 @@ func TrainEM(iterations, samples int) {
 			watch.Lap("export")
 		}
 
-		watch.Stop()
-
-		fmt.Printf("%s", watch)
-
-		watch.Reset()
-
 		if Config.PrintCorpusLikelihood {
 			fmt.Printf("\nCorpus likelihood: %e", lh)
 		}
@@ -248,7 +242,15 @@ func TrainEM(iterations, samples int) {
 
 		lhExp := math.Log10(2) * float64(lh.MantExp(nil))
 
-		fmt.Printf("\nLikelihood exponent: %d\n", int(lhExp))
+		fmt.Printf("\nLikelihood exponent: %d\n\n", int(lhExp))
+
+		watch.Lap("likelihood")
+
+		watch.Stop()
+
+		fmt.Printf("%s", watch)
+
+		watch.Reset()
 	}
 }
 
