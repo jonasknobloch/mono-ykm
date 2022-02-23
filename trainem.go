@@ -7,6 +7,7 @@ import (
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"golang.org/x/sync/semaphore"
 	"log"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -160,7 +161,7 @@ func TrainEM(iterations, samples int) {
 		eval := 0
 		skip := 0
 
-		likelihood := new(big.Float)
+		lh := big.NewFloat(1)
 
 		for corpus.Next() && (samples == -1 || eval < samples) {
 			if !corpus.Sample().Label {
@@ -197,7 +198,7 @@ func TrainEM(iterations, samples int) {
 
 				p := g.pBeta[g.nodes[0]]
 
-				likelihood.Add(likelihood, p)
+				lh.Mul(lh, p)
 
 				if Config.ExportGraphs {
 					g.Draw()
@@ -239,7 +240,15 @@ func TrainEM(iterations, samples int) {
 
 		watch.Reset()
 
-		fmt.Printf("\nCorpus likelihood: %e\n", likelihood)
+		if Config.PrintCorpusLikelihood {
+			fmt.Printf("\nCorpus likelihood: %e", lh)
+		}
+
+		// https://github.com/golang/go/issues/11068
+
+		lhExp := math.Log10(2) * float64(lh.MantExp(nil))
+
+		fmt.Printf("\nLikelihood exponent: %d\n", int(lhExp))
 	}
 }
 

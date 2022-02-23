@@ -21,6 +21,7 @@ var Config = struct {
 	TreeMockDataPath            string
 	InitModelPath               string
 	InitModelIteration          int
+	PrintCorpusLikelihood       bool
 	ExportGraphs                bool
 	ExportModel                 bool
 	GraphExportDirectory        string
@@ -46,6 +47,8 @@ func init() {
 
 	Config.InitModelPath, _ = parseEnvString("INIT_MODEL_PATH", "")
 	Config.InitModelIteration, _, _ = parseEnvInt("INIT_MODEL_ITERATION", 1)
+
+	Config.PrintCorpusLikelihood, _, _ = parseEnvBool("PRINT_CORPUS_LIKELIHOOD", false)
 
 	Config.ExportGraphs, _, _ = parseEnvBool("EXPORT_GRAPHS", false)
 	Config.ExportModel, _, _ = parseEnvBool("EXPORT_MODEL", true)
