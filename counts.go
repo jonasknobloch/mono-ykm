@@ -101,7 +101,7 @@ func (g *Graph) InsertionCount(feature, key string) (*big.Float, bool) {
 			prod.Mul(prod, g.InsideWeightsInterior(m, key))
 		}
 
-		prod.Quo(prod, g.Beta(m))
+		prod.Quo(prod, g.Beta(g.nodes[0]))
 
 		sum.Add(sum, prod)
 	}
@@ -125,7 +125,7 @@ func (g *Graph) ReorderingCount(feature, key string) (*big.Float, bool) {
 		prod.Mul(prod, g.pAlpha[m])
 		prod.Mul(prod, g.InsideWeightsInterior(m, "", key))
 
-		prod.Quo(prod, g.Beta(m))
+		prod.Quo(prod, g.Beta(g.nodes[0]))
 
 		sum.Add(sum, prod)
 	}
@@ -149,7 +149,7 @@ func (g *Graph) TranslationCount(feature, key string) (*big.Float, bool) {
 		prod.Mul(prod, g.pAlpha[m])
 		prod.Mul(prod, g.InsideWeightsTerminal(m, "", key))
 
-		prod.Quo(prod, g.Beta(m))
+		prod.Quo(prod, g.Beta(g.nodes[0]))
 
 		sum.Add(sum, prod)
 	}
