@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 )
@@ -17,6 +18,7 @@ var Config = struct {
 	TrainingSampleLimit         int
 	TrainingComplexityLimit     int
 	ConcurrentSampleEvaluations int
+	ParaphraseThreshold         float64
 	CoreNLPUrl                  string
 	TreeMockDataPath            string
 	InitModelPath               string
@@ -45,6 +47,8 @@ func init() {
 
 	Config.ConcurrentSampleEvaluations, _, _ = parseEnvInt("CONCURRENT_SAMPLE_EVALUATIONS", 1)
 
+	Config.ParaphraseThreshold, _, _ = parseEnvFloat64("PARAPHRASE_THRESHOLD", math.SmallestNonzeroFloat64)
+
 	Config.InitModelPath, _ = parseEnvString("INIT_MODEL_PATH", "")
 	Config.InitModelIteration, _, _ = parseEnvInt("INIT_MODEL_ITERATION", 1)
 
@@ -71,6 +75,20 @@ func parseEnvString(key, def string) (string, bool) {
 func parseEnvInt(key string, def int) (int, bool, error) {
 	if val, ok := os.LookupEnv(key); ok {
 		i, err := strconv.Atoi(val)
+
+		if err != nil {
+			return def, false, err
+		}
+
+		return i, ok, nil
+	}
+
+	return def, false, nil
+}
+
+func parseEnvFloat64(key string, def float64) (float64, bool, error) {
+	if val, ok := os.LookupEnv(key); ok {
+		i, err := strconv.ParseFloat(val, 64)
 
 		if err != nil {
 			return def, false, err

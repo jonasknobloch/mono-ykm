@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"golang.org/x/sync/semaphore"
 	"log"
-	"math"
 	"math/big"
 	"sync"
 )
@@ -24,7 +23,7 @@ func Evaluate() {
 	tn := 0
 	fn := 0
 
-	pth := big.NewFloat(math.SmallestNonzeroFloat64)
+	pth := big.NewFloat(Config.ParaphraseThreshold)
 
 	counter := 0
 
