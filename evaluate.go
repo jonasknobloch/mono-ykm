@@ -27,7 +27,11 @@ func Evaluate() {
 
 	counter := 0
 
-	pos, neg := new(big.Float), new(big.Float)
+	numPos := 0
+	numNeg := 0
+
+	pos := new(big.Float)
+	neg := new(big.Float)
 
 	ctx := context.TODO()
 	sem := semaphore.NewWeighted(int64(Config.ConcurrentSampleEvaluations))
@@ -72,13 +76,19 @@ func Evaluate() {
 				fn++
 			}
 
-			if sample.Label {
-				pos.Add(pos, p)
-			} else {
-				neg.Add(neg, p)
+			fmt.Printf("TP: %d FP: %d TN: %d FN: %d (%e)\n", tp, fp, tn, fn, p)
+
+			if p.Cmp(new(big.Float)) == 0 {
+				return
 			}
 
-			fmt.Printf("TP: %d FP: %d TN: %d FN: %d (%e)\n", tp, fp, tn, fn, p)
+			if sample.Label {
+				pos.Add(pos, p)
+				numPos++
+			} else {
+				neg.Add(neg, p)
+				numNeg++
+			}
 		}()
 
 		counter++
@@ -91,8 +101,8 @@ func Evaluate() {
 
 	f := float64(2) * precision * recall / (precision + recall)
 
-	avgPos := pos.Quo(pos, big.NewFloat(float64(tp+fn)))
-	avgNeg := neg.Quo(neg, big.NewFloat(float64(fp+tn)))
+	avgPos := pos.Quo(pos, big.NewFloat(float64(numPos)))
+	avgNeg := neg.Quo(neg, big.NewFloat(float64(numNeg)))
 
 	mean := new(big.Float)
 
