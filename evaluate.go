@@ -36,10 +36,6 @@ func Evaluate() {
 	for corpus.Next() && (Config.TrainingSampleLimit == -1 || counter < Config.TrainingSampleLimit) {
 		sample := corpus.Sample()
 
-		if !sample.Label {
-			continue
-		}
-
 		mt, e, err := initSample(sample)
 
 		if err != nil {
