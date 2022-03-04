@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"github.com/jonasknobloch/jinn/pkg/corenlp"
 	"github.com/jonasknobloch/jinn/pkg/msrpc"
 	"github.com/jonasknobloch/jinn/pkg/paws"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -83,6 +85,10 @@ func main() {
 	}
 
 	if err := PAWS("paws/train.tsv", w); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := QQP("qqp/quora_duplicate_questions.tsv", w); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -232,6 +238,80 @@ func PAWS(name string, w *csv.Writer) error {
 		}
 
 		if err := add(id2, s.Sentence2, s.Sentence1, s.Label); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func QQP(name string, w *csv.Writer) error {
+	f, err := os.Open(name)
+
+	if err != nil {
+		return err
+	}
+
+	r := csv.NewReader(f)
+
+	r.Comma = '\t'
+
+	record, err := r.Read()
+
+	if err != nil {
+		return err
+	}
+
+	var header [6]string
+	copy(header[:], record[0:6])
+
+	if header != [6]string{"id", "qid1", "qid2", "question1", "question2", "is_duplicate"} {
+		return errors.New("unexpected header row")
+	}
+
+	add := func(id, question1, question2, duplicate string) error {
+		t, err := parse(question1)
+
+		if err != nil {
+			return err
+		}
+
+		s, err := tokenize(question2)
+
+		if err != nil {
+			return err
+		}
+
+		if err := w.Write([]string{id, t, s, duplicate}); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	for {
+		record, err := r.Read()
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return err
+		}
+
+		if record[5] != "1" {
+			continue
+		}
+
+		id1 := strings.Join([]string{"qqp", record[0], record[1], record[2]}, "_")
+		id2 := strings.Join([]string{"qqp", record[0], record[2], record[1]}, "_")
+
+		if err := add(id1, record[3], record[4], record[5]); err != nil {
+			return err
+		}
+
+		if err := add(id2, record[4], record[3], record[5]); err != nil {
 			return err
 		}
 	}
