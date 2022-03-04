@@ -76,7 +76,7 @@ func Evaluate() {
 				fn++
 			}
 
-			fmt.Printf("TP: %d FP: %d TN: %d FN: %d (%e)\n", tp, fp, tn, fn, p)
+			fmt.Printf("TP: %d FP: %d TN: %d FN: %d (%e) [%s %t]\n", tp, fp, tn, fn, p, sample.ID, sample.Label)
 
 			if p.Cmp(new(big.Float)) == 0 {
 				return
