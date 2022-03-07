@@ -17,8 +17,6 @@ var Config = struct {
 	TrainingComplexityLimit     int
 	ConcurrentSampleEvaluations int
 	ParaphraseThreshold         float64
-	CoreNLPUrl                  string
-	TreeMockDataPath            string
 	InitModelPath               string
 	InitModelIteration          int
 	PrintCorpusLikelihood       bool
