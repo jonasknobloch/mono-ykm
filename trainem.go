@@ -31,28 +31,6 @@ func initCorpus() {
 	corpus = c
 }
 
-func initModel(samples int) *Model {
-	m := NewModel()
-
-	fmt.Println("Building dictionaries...")
-
-	nDict, rDict, tDict := buildDictionaries(samples)
-
-	fmt.Println("Initializing weights...")
-
-	m.InitTable(m.n, nDict)
-	m.InitTable(m.r, rDict)
-	m.InitTable(m.t, tDict)
-
-	if Config.ExportModel {
-		_ = Export(m.n, strconv.Itoa(0), "n")
-		_ = Export(m.r, strconv.Itoa(0), "r")
-		_ = Export(m.t, strconv.Itoa(0), "t")
-	}
-
-	return m
-}
-
 func initSample(sample *Sample) (*MetaTree, []string, error) {
 	dec := tree.NewDecoder()
 
@@ -131,7 +109,7 @@ func TrainEM(iterations, samples int) {
 			o = Config.InitModelIteration
 		}
 	} else {
-		model = initModel(samples)
+		model = NewModel()
 	}
 
 	nC := NewCount()
@@ -204,9 +182,9 @@ func TrainEM(iterations, samples int) {
 					g.Draw()
 				}
 
-				nC.ForEach(model.n, g.InsertionCount)
-				nR.ForEach(model.r, g.ReorderingCount)
-				nT.ForEach(model.t, g.TranslationCount)
+				nC.ForEach(g.insertions, g.InsertionCount)
+				nR.ForEach(g.reorderings, g.ReorderingCount)
+				nT.ForEach(g.translations, g.TranslationCount)
 
 				w.Stop()
 
@@ -254,58 +232,4 @@ func TrainEM(iterations, samples int) {
 
 		watch.Reset()
 	}
-}
-
-func buildDictionaries(samples int) (map[string]map[string]int, map[string]map[string]int, map[string]map[string]int) {
-	insertions := make(map[string]map[string]int)
-	reorderings := make(map[string]map[string]int)
-	translations := make(map[string]map[string]int)
-
-	addParameter := func(m map[string]map[string]int, f, k string) {
-		if _, ok := m[f]; !ok {
-			m[f] = make(map[string]int)
-		}
-
-		if _, ok := m[f][k]; !ok {
-			m[f][k] = 0
-		}
-
-		m[f][k]++
-	}
-
-	counter := 0
-
-	initCorpus()
-
-	for corpus.Next() && (samples == -1 || counter < samples) {
-		sample := corpus.Sample()
-
-		if !sample.Label {
-			continue
-		}
-
-		mt, e, err := initSample(sample)
-
-		if err != nil {
-			continue
-		}
-
-		mt.Tree.Walk(func(st *tree.Tree) {
-			for _, i := range Insertions(st, e, mt.Feature(st, InsertionFeature), true) {
-				addParameter(insertions, i.Feature(), i.Key())
-			}
-
-			for _, r := range Reorderings(st, mt.Feature(st, ReorderingFeature)) {
-				addParameter(reorderings, r.Feature(), r.Key())
-			}
-
-			for _, t := range Translations(st, e, mt.Feature(st, TranslationFeature)) {
-				addParameter(translations, t.Feature(), t.Key())
-			}
-		})
-
-		counter++
-	}
-
-	return insertions, reorderings, translations
 }

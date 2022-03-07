@@ -153,7 +153,7 @@ func partitionings(reordering *Node) [][]int {
 }
 
 func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
-	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature), false) {
+	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature)) {
 		insertion := op.(Insertion)
 
 		k := n.k

@@ -36,7 +36,7 @@ func (c *Count) Get(feature, key string) *big.Float {
 	return c.val[feature][key]
 }
 
-func (c *Count) ForEach(p map[string]map[string]*big.Float, f func(string, string) (*big.Float, bool)) {
+func (c *Count) ForEach(p map[string]map[string][]*Node, f func(string, string) (*big.Float, bool)) {
 	for feature, keys := range p {
 		for key := range keys {
 			val, ok := f(feature, key)

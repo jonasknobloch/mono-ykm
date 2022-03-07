@@ -67,23 +67,8 @@ func (i Insertion) UnknownKey() string {
 	return i.key[1]
 }
 
-func Insertions(t *tree.Tree, d []string, f [2]string, dict bool) []Operation {
+func Insertions(t *tree.Tree, d []string, f [2]string) []Operation {
 	ops := make([]Operation, 0)
-
-	if dict {
-		ops = append(ops, NewInsertion(None, "", f))
-
-		if !Config.AllowTerminalInsertions && len(t.Children) == 0 {
-			return ops
-		}
-
-		for _, w := range d {
-			ops = append(ops, NewInsertion(Left, w, f))
-			ops = append(ops, NewInsertion(Right, w, f))
-		}
-
-		return ops
-	}
 
 	none := Config.AllowTerminalInsertions && len(d) < t.Size()+1
 
@@ -197,20 +182,4 @@ func (t Translation) UnknownFeature() string {
 
 func (t Translation) UnknownKey() string {
 	return t.key[1]
-}
-
-func Translations(t *tree.Tree, d []string, f [2]string) []Operation {
-	ops := make([]Operation, 0)
-
-	if len(t.Children) != 0 {
-		return ops
-	}
-
-	ops = append(ops, NewTranslation("", f))
-
-	for _, w := range d {
-		ops = append(ops, NewTranslation(w, f))
-	}
-
-	return ops
 }

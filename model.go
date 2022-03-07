@@ -20,18 +20,6 @@ func NewModel() *Model {
 	}
 }
 
-func (m *Model) InitTable(t map[string]map[string]*big.Float, d map[string]map[string]int) {
-	for feature, keys := range d {
-		t[feature] = make(map[string]*big.Float, len(keys))
-
-		val := big.NewFloat(1 / float64(len(keys)))
-
-		for key := range keys {
-			t[feature][key] = new(big.Float).Copy(val)
-		}
-	}
-}
-
 func (m *Model) Table(op Operation) map[string]map[string]*big.Float {
 	switch op.(type) {
 	case Insertion:
@@ -46,6 +34,10 @@ func (m *Model) Table(op Operation) map[string]map[string]*big.Float {
 }
 
 func (m *Model) Probability(op Operation) *big.Float {
+	if len(m.Table(op)) == 0 {
+		return big.NewFloat(0.1)
+	}
+
 	if p, ok := m.Table(op)[op.Feature()][op.Key()]; ok {
 		return p
 	}
@@ -67,26 +59,23 @@ func (m *Model) Probability(op Operation) *big.Float {
 
 func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) error {
 	update := func(p map[string]map[string]*big.Float, c *Count) error {
-		for feature, keys := range p {
-			if _, ok := c.val[feature]; !ok {
-				continue
-			}
-
+		for feature, keys := range c.val {
 			sum := c.Sum(feature)
 
 			if sum.Cmp(new(big.Float)) == 0 {
 				return errors.New("invalid counter sum for feature: " + feature)
 			}
 
-			for key := range keys {
-				val := c.Get(feature, key)
+			if _, ok := p[feature]; !ok {
+				p[feature] = make(map[string]*big.Float, len(c.val[feature]))
+			}
 
-				if val == nil {
-					p[feature][key].SetFloat64(0)
-					continue
+			for key := range keys {
+				if _, ok := p[feature][key]; !ok {
+					p[feature][key] = new(big.Float)
 				}
 
-				p[feature][key].Quo(val, sum)
+				p[feature][key].Quo(c.Get(feature, key), sum)
 			}
 		}
 
