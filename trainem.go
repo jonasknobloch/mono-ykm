@@ -222,7 +222,9 @@ func TrainEM(iterations, samples int) {
 
 		fmt.Printf("\nAdjusting model weights...\n")
 
-		model.UpdateWeights(nC, nR, nT)
+		if err := model.UpdateWeights(nC, nR, nT); err != nil {
+			log.Fatalf("Error updating model weights: %v", err)
+		}
 
 		watch.Lap("weights")
 

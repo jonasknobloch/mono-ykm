@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"strconv"
@@ -12,7 +11,6 @@ var Config = struct {
 	AllowTerminalInsertions     bool
 	ReplaceSparseTokens         bool
 	SparseTokenThreshold        int
-	ModelErrorStrategy          string
 	TrainingDataPath            string
 	TrainingIterationLimit      int
 	TrainingSampleLimit         int
@@ -36,9 +34,6 @@ func init() {
 	Config.AllowTerminalInsertions, _, _ = parseEnvBool("ALLOW_TERMINAL_INSERTIONS", false)
 	Config.ReplaceSparseTokens, _, _ = parseEnvBool("REPLACE_SPARSE_TOKENS", false)
 	Config.SparseTokenThreshold, _, _ = parseEnvInt("SPARSE_TOKEN_THRESHOLD", 1)
-	Config.ModelErrorStrategy, _ = parseEnvString("MODEL_ERROR_STRATEGY", ErrorStrategyReset)
-
-	validateConst(Config.ModelErrorStrategy, ErrorStrategyIgnore, ErrorStrategyKeep, ErrorStrategyReset)
 
 	Config.TrainingDataPath, _ = parseEnvString("TRAINING_DATA_PATH", "")
 	Config.TrainingIterationLimit, _, _ = parseEnvInt("TRAINING_ITERATION_LIMIT", 1)
@@ -112,22 +107,6 @@ func parseEnvBool(key string, def bool) (bool, bool, error) {
 	}
 
 	return def, false, nil
-}
-
-func validateConst(value string, candidates ...string) {
-	valid := false
-
-	for _, c := range candidates {
-		if c != value {
-			continue
-		}
-
-		valid = true
-	}
-
-	if !valid {
-		log.Fatalf("Invalid value for const: %s not in %v", value, candidates)
-	}
 }
 
 func ensureDirectoryExists(name string) {

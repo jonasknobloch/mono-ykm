@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 )
@@ -10,10 +11,6 @@ type Model struct {
 	r map[string]map[string]*big.Float
 	t map[string]map[string]*big.Float
 }
-
-const ErrorStrategyIgnore = "ignore"
-const ErrorStrategyKeep = "keep"
-const ErrorStrategyReset = "reset"
 
 func NewModel() *Model {
 	return &Model{
@@ -68,8 +65,8 @@ func (m *Model) Probability(op Operation) *big.Float {
 	return new(big.Float)
 }
 
-func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) {
-	update := func(p map[string]map[string]*big.Float, c *Count) {
+func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount *Count) error {
+	update := func(p map[string]map[string]*big.Float, c *Count) error {
 		for feature, keys := range p {
 			if _, ok := c.val[feature]; !ok {
 				continue
@@ -78,24 +75,7 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 			sum := c.Sum(feature)
 
 			if sum.Cmp(new(big.Float)) == 0 {
-				fmt.Printf("Invalid probability distribution for %s\n", feature)
-
-				var val *big.Float
-
-				switch Config.ModelErrorStrategy {
-				case ErrorStrategyIgnore:
-					val = new(big.Float)
-				case ErrorStrategyReset:
-					val = big.NewFloat(1 / float64(c.Size(feature)))
-				case ErrorStrategyKeep:
-					continue
-				}
-
-				for key := range keys {
-					p[feature][key].Copy(val)
-				}
-
-				continue
+				return errors.New("invalid counter sum for feature: " + feature)
 			}
 
 			for key := range keys {
@@ -109,9 +89,21 @@ func (m *Model) UpdateWeights(insertionCount, reorderingCount, translationCount 
 				p[feature][key].Quo(val, sum)
 			}
 		}
+
+		return nil
 	}
 
-	update(m.n, insertionCount)
-	update(m.r, reorderingCount)
-	update(m.t, translationCount)
+	if err := update(m.n, insertionCount); err != nil {
+		return fmt.Errorf("insertion: %w", err)
+	}
+
+	if err := update(m.r, reorderingCount); err != nil {
+		return fmt.Errorf("reordering: %w", err)
+	}
+
+	if err := update(m.t, translationCount); err != nil {
+		return fmt.Errorf("translation: %w", err)
+	}
+
+	return nil
 }
