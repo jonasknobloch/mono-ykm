@@ -12,6 +12,7 @@ var execMode = flag.String("m", "train", "choose execution mode")
 
 const ModeTrain = "train"
 const ModeEvaluate = "evaluate"
+const ModeExplore = "explore"
 
 func main() {
 	flag.Parse()
@@ -35,5 +36,7 @@ func main() {
 		TrainEM(Config.TrainingIterationLimit, Config.TrainingSampleLimit)
 	case ModeEvaluate:
 		Evaluate()
+	case ModeExplore:
+		Explore()
 	}
 }
