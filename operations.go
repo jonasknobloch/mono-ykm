@@ -70,16 +70,11 @@ func (i Insertion) UnknownKey() string {
 func Insertions(t *tree.Tree, d []string, f [2]string) []Operation {
 	ops := make([]Operation, 0)
 
-	none := Config.AllowTerminalInsertions && len(d) < t.Size()+1
-
-	none = none || !Config.AllowTerminalInsertions && len(t.Children) == 0 && len(d) <= t.Size()
-	none = none || !Config.AllowTerminalInsertions && len(t.Children) != 0 && len(d) < t.Size()
-
-	if none {
+	if len(d) < t.Size()+1 {
 		ops = append(ops, NewInsertion(None, "", f))
 	}
 
-	if (Config.AllowTerminalInsertions || len(t.Children) != 0) && len(d) > 0 {
+	if len(d) > 0 {
 		ops = append(ops, NewInsertion(Left, d[0], f))
 		ops = append(ops, NewInsertion(Right, d[len(d)-1], f))
 	}

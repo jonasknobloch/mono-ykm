@@ -54,10 +54,7 @@ func initSample(sample *Sample) (*MetaTree, []string, error) {
 		replaceSparseTokens(e, tokenOccurrences)
 	}
 
-	unreachable := !Config.AllowTerminalInsertions && mt.Tree.Size() < len(e)
-	unreachable = unreachable || Config.AllowTerminalInsertions && mt.Tree.Size()+len(mt.Tree.Leaves()) < len(e)
-
-	if unreachable {
+	if mt.Tree.Size()+len(mt.Tree.Leaves()) < len(e) {
 		return nil, nil, errors.New("target sentence unreachable")
 	}
 

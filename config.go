@@ -8,7 +8,6 @@ import (
 )
 
 var Config = struct {
-	AllowTerminalInsertions     bool
 	ReplaceSparseTokens         bool
 	SparseTokenThreshold        int
 	TrainingDataPath            string
@@ -29,7 +28,6 @@ var Config = struct {
 func init() {
 	defer fmt.Printf("%+v\n\n", &Config)
 
-	Config.AllowTerminalInsertions, _, _ = parseEnvBool("ALLOW_TERMINAL_INSERTIONS", false)
 	Config.ReplaceSparseTokens, _, _ = parseEnvBool("REPLACE_SPARSE_TOKENS", false)
 	Config.SparseTokenThreshold, _, _ = parseEnvInt("SPARSE_TOKEN_THRESHOLD", 1)
 
