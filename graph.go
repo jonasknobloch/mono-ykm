@@ -113,7 +113,9 @@ func (g *Graph) AddOperation(op Operation, n *Node) {
 
 func partitionings(reordering *Node) [][]int {
 	validate := func(p, i int) bool {
-		return !(p > reordering.tree.Children[reordering.r.Reordering[i]].Size()+1)
+		st := reordering.tree.Children[reordering.r.Reordering[i]]
+
+		return !(p > st.Size()+len(st.Leaves()))
 	}
 
 	var p func(n, k int, r [][]int) [][]int
