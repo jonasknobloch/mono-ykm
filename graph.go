@@ -51,11 +51,15 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 	g.Beta(n)
 
 	for _, node := range g.nodes {
-		if node.nType != FinalNode {
+		if node.nType != MajorNode {
 			continue
 		}
 
-		g.Alpha(g.pred[g.pred[node][0]][0])
+		if len(node.tree.Children) > 0 {
+			continue
+		}
+
+		g.Alpha(node)
 	}
 
 	return g
