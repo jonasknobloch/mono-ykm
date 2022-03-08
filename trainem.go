@@ -162,8 +162,15 @@ func TrainEM(iterations, samples int) {
 			wg.Add(1)
 
 			go func() {
-				defer sem.Release(1)
-				defer wg.Done()
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Panic while evaluating sample %s", sample.ID)
+						panic(r)
+					}
+
+					defer sem.Release(1)
+					defer wg.Done()
+				}()
 
 				w := NewStopWatch()
 
