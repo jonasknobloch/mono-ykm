@@ -152,7 +152,13 @@ type Translation struct {
 	Word string
 }
 
+const NullToken = "$NULL$"
+
 func NewTranslation(word string, feature [2]string) Translation {
+	if word == "" {
+		word = NullToken
+	}
+
 	t := Translation{
 		feature: feature,
 		Word:    word,
