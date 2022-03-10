@@ -183,7 +183,9 @@ func TrainEM(iterations, samples int) {
 				lh.Mul(lh, p)
 
 				if Config.ExportGraphs {
-					g.Draw()
+					if _, err := g.Draw(strconv.Itoa(i), sample.ID); err != nil {
+						log.Fatalf("Error drawing graph %d-%s: %v", i, sample.ID, err)
+					}
 				}
 
 				nC.ForEach(g.insertions, g.InsertionCount)

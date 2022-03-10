@@ -7,61 +7,67 @@ import (
 	"strings"
 )
 
-func (g *Graph) Draw(stubs ...string) {
+func (g *Graph) Draw(stubs ...string) (int, error) {
 	name := fmt.Sprintf("graph_%s.dot", strings.Join(stubs, "-"))
 
-	f, _ := os.Create(filepath.Join(Config.GraphExportDirectory, name))
+	f, err := os.Create(filepath.Join(Config.GraphExportDirectory, name))
+
+	if err != nil {
+		return 0, err
+	}
 
 	defer f.Close()
 
-	_, _ = f.WriteString("digraph D {\n")
-	_, _ = f.WriteString("  node [shape=record]\n")
+	sb := strings.Builder{}
+
+	sb.WriteString("digraph D {\n")
+	sb.WriteString("  node [shape=record]\n")
 
 	for _, n := range g.nodes {
-		_, _ = f.WriteString(fmt.Sprintf("  PTR%p", n))
-		_, _ = f.WriteString(" [")
+		sb.WriteString(fmt.Sprintf("  PTR%p", n))
+		sb.WriteString(" [")
 
 		if n.nType == MajorNode {
-			_, _ = f.WriteString("color=red ")
+			sb.WriteString("color=red label=\"")
+
+			sb.WriteString(fmt.Sprintf("%s ", n.tree.Label))
+			sb.WriteString(fmt.Sprintf("| %s ", n.tree.Sentence()))
+			sb.WriteString(fmt.Sprintf("| %s ", n.Substring()))
+			sb.WriteString(fmt.Sprintf(" | %e | %e", g.pAlpha[n], g.pBeta[n]))
+
+			sb.WriteString("\"]\n")
 		}
 
 		if n.nType == FinalNode {
-			_, _ = f.WriteString("color=blue ")
+			sb.WriteString("color=blue label=\"")
+
+			sb.WriteString(fmt.Sprintf("%s ", n.tree.Label))
+			sb.WriteString(fmt.Sprintf("| %s ", n.tree.Sentence()))
+			sb.WriteString(fmt.Sprintf("| %s ", n.t.Key()))
+
+			sb.WriteString("\"]\n")
 		}
 
-		_, _ = f.WriteString("label=\"")
-		_, _ = f.WriteString(fmt.Sprintf("%s ", n.tree.Label))
+		if n.nType == SubNode {
+			sb.WriteString("label=\"")
 
-		if n.n.Key() != "" {
-			_, _ = f.WriteString(fmt.Sprintf("| %s ", n.n.Key()))
+			if len(n.p) > 0 {
+				sb.WriteString(fmt.Sprintf("%v ", n.p))
+			} else if n.r.Key() != "" {
+				sb.WriteString(fmt.Sprintf("%s ", n.r.Key()))
+			} else if n.n.Key() != "" {
+				sb.WriteString(fmt.Sprintf("%s ", n.n.Key()))
+			}
+
+			sb.WriteString("\"]\n")
 		}
-
-		if n.r.Key() != "" {
-			_, _ = f.WriteString(fmt.Sprintf("| %s ", n.r.Key()))
-		}
-
-		if len(n.p) > 0 {
-			_, _ = f.WriteString(fmt.Sprintf("| %v ", n.p))
-		}
-
-		if n.t.Key() != "" {
-			_, _ = f.WriteString(fmt.Sprintf("| %s ", n.t.Key()))
-		}
-
-		_, _ = f.WriteString(fmt.Sprintf("| %s", n.Substring()))
-
-		if n.nType == MajorNode {
-			_, _ = f.WriteString(fmt.Sprintf(" | %e | %e", g.pAlpha[n], g.pBeta[n]))
-		}
-
-		_, _ = f.WriteString("\"")
-		_, _ = f.WriteString("]")
-		_, _ = f.WriteString("\n")
 	}
 
 	for k, v := range g.edges {
-		_, _ = f.WriteString(fmt.Sprintf("  PTR%p -> PTR%p [label=\"%e\"]\n", k[0], k[1], v))
+		sb.WriteString(fmt.Sprintf("  PTR%p -> PTR%p [label=\"%e\"]\n", k[0], k[1], v))
 	}
 
-	_, _ = f.WriteString("}\n")
+	sb.WriteString("}\n")
+
+	return f.WriteString(sb.String())
 }
