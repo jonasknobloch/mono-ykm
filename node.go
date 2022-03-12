@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/jonasknobloch/jinn/pkg/tree"
+	"math/big"
 	"strings"
 )
 
@@ -14,15 +15,17 @@ const (
 )
 
 type Node struct {
-	n     Insertion
-	r     Reordering
-	t     Translation
-	p     []int
-	tree  *tree.Tree
-	f     []string
-	k     int
-	l     int
-	nType NodeType
+	n      Insertion
+	r      Reordering
+	t      Translation
+	p      []int
+	tree   *tree.Tree
+	f      []string
+	k      int
+	l      int
+	nType  NodeType
+	lambda *big.Float
+	kappa  *big.Float
 }
 
 func (n *Node) Substring() string {

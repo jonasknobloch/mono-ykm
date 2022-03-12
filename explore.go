@@ -98,6 +98,10 @@ func Explore() {
 				t = model.r
 			case "t":
 				t = model.t
+			case "l":
+				t = model.l
+			case "f":
+				t = model.f
 			default:
 				fmt.Println("unknown table")
 				continue

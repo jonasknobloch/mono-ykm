@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"math/big"
+	"strings"
 )
 
 type Graph struct {
@@ -18,8 +19,13 @@ type Graph struct {
 	reorderings  map[string]map[string][]*Node
 	translations map[string]map[string][]*Node
 
+	lambda map[string]map[string][]*Node
+
 	major map[*tree.Tree]map[string]*Node
 }
+
+const LambdaKey = "l"
+const KappaKey = "k"
 
 func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 	n := &Node{
@@ -43,6 +49,8 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		reorderings:  make(map[string]map[string][]*Node),
 		translations: make(map[string]map[string][]*Node),
 
+		lambda: make(map[string]map[string][]*Node),
+
 		major: make(map[*tree.Tree]map[string]*Node),
 	}
 
@@ -52,10 +60,6 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 
 	for _, node := range g.nodes {
 		if node.nType != MajorNode {
-			continue
-		}
-
-		if len(node.tree.Children) > 0 {
 			continue
 		}
 
@@ -88,6 +92,18 @@ func (g *Graph) AddEdge(n1, n2 *Node, w *big.Float) {
 	g.succ[n1] = append(g.succ[n1], n2)
 }
 
+func (g *Graph) TrackNode(m map[string]map[string][]*Node, feature, key string, n *Node) {
+	if _, ok := m[feature]; !ok {
+		m[feature] = make(map[string][]*Node)
+	}
+
+	if _, ok := m[feature][key]; !ok {
+		m[feature][key] = make([]*Node, 0)
+	}
+
+	m[feature][key] = append(m[feature][key], n)
+}
+
 func (g *Graph) AddOperation(op Operation, n *Node) {
 	var m map[string]map[string][]*Node
 
@@ -104,22 +120,14 @@ func (g *Graph) AddOperation(op Operation, n *Node) {
 
 	feature, key := op.Feature(), op.Key()
 
-	if _, ok := m[feature]; !ok {
-		m[feature] = make(map[string][]*Node)
-	}
-
-	if _, ok := m[feature][key]; !ok {
-		m[feature][key] = make([]*Node, 0)
-	}
-
-	m[feature][key] = append(m[feature][key], n)
+	g.TrackNode(m, feature, key, n)
 }
 
 func partitionings(reordering *Node) [][]int {
 	validate := func(p, i int) bool {
 		st := reordering.tree.Children[reordering.r.Reordering[i]]
 
-		return !(p > st.Size()+len(st.Leaves()))
+		return !(p > st.Size()+(len(st.Leaves())*Config.PhraseLengthLimit))
 	}
 
 	var p func(n, k int, r [][]int) [][]int
@@ -149,6 +157,21 @@ func partitionings(reordering *Node) [][]int {
 }
 
 func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
+	e := func() []string {
+		leaves := n.tree.Leaves()
+		labels := make([]string, len(leaves))
+
+		for i, leaf := range leaves {
+			labels[i] = leaf.Label
+		}
+
+		return labels
+	}()
+
+	eStr := strings.Join(e, " ")
+
+	n.lambda, n.kappa = m.Lambda(eStr, len(n.tree.Children) == 0)
+
 	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature)) {
 		insertion := op.(Insertion)
 
@@ -177,7 +200,17 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 		g.AddEdge(n, i, m.Probability(insertion))
 		g.AddOperation(insertion, n)
 
-		if len(n.tree.Children) == 0 {
+		phrasal := true
+
+		phrasal = phrasal && len(e) > 1
+		phrasal = phrasal && l > 1
+
+		phrasal = phrasal && len(e) <= Config.PhraseLengthLimit
+		phrasal = phrasal && l <= Config.PhraseLengthLimit
+
+		// TODO phrase frequency cutoff
+
+		if len(n.tree.Children) == 0 || phrasal {
 			translation := NewTranslation(i.Substring(), mt.Feature(n.tree, TranslationFeature))
 
 			f := &Node{
@@ -194,7 +227,20 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 			g.AddEdge(i, f, m.Probability(translation))
 			g.AddOperation(translation, n)
 
-			continue
+			if len(n.tree.Children) == 0 {
+				continue
+			}
+
+			if ms, ok := g.lambda[eStr][LambdaKey]; ok {
+				if ms[len(ms)-1] == n {
+					continue
+				}
+			}
+
+			if len(n.tree.Children) != 0 {
+				g.TrackNode(g.lambda, eStr, LambdaKey, n)
+				g.TrackNode(g.lambda, eStr, KappaKey, n)
+			}
 		}
 
 		for _, op := range Reorderings(n.tree, mt.Feature(n.tree, ReorderingFeature)) {
@@ -284,20 +330,40 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 		insertion := g.pred[reordering][0]
 		major := g.pred[insertion][0]
 
-		prod.Mul(prod, g.Alpha(major))
+		nProb := new(big.Float).Copy(g.edges[[2]*Node{major, insertion}])
+		rProb := new(big.Float).Copy(g.edges[[2]*Node{insertion, reordering}])
 
-		prod.Mul(prod, g.edges[[2]*Node{major, insertion}])
-		prod.Mul(prod, g.edges[[2]*Node{insertion, reordering}])
+		var translation *Node
+		var tProb *big.Float
+
+		for _, t := range g.succ[insertion] {
+			if t.nType == FinalNode {
+				translation = t
+				break
+			}
+		}
+
+		tProb = new(big.Float)
+
+		if translation != nil {
+			tProb.Copy(g.edges[[2]*Node{insertion, translation}])
+		}
 
 		for _, sibling := range g.succ[partitioning] {
 			if sibling == n {
 				continue
 			}
 
-			prod.Mul(prod, g.Beta(sibling))
+			rProb.Mul(prod, g.Beta(sibling))
 		}
 
-		sum.Add(sum, prod)
+		prod.Mul(prod, g.Alpha(major))
+
+		tProb.Mul(tProb, major.lambda).Mul(tProb, nProb)
+		rProb.Mul(rProb, major.kappa).Mul(rProb, nProb)
+
+		sum.Add(sum, tProb)
+		sum.Add(sum, rProb)
 	}
 
 	g.pAlpha[n] = sum
@@ -310,11 +376,7 @@ func (g *Graph) Beta(n *Node) *big.Float {
 		return b
 	}
 
-	if len(n.tree.Children) == 0 {
-		g.pBeta[n] = g.InsideWeightsTerminal(n)
-	} else {
-		g.pBeta[n] = g.InsideWeightsInterior(n)
-	}
+	g.pBeta[n] = g.InsideWeight(n, [3]string{}, nil, nil)
 
 	return g.pBeta[n]
 }

@@ -1,6 +1,9 @@
 package main
 
-import "github.com/jonasknobloch/jinn/pkg/tree"
+import (
+	"github.com/jonasknobloch/jinn/pkg/tree"
+	"strings"
+)
 
 func nFeature(p, st *tree.Tree, replaceLeafs bool) string {
 	var feature string
@@ -42,13 +45,19 @@ func rFeature(st *tree.Tree, replaceLeafs bool) string {
 }
 
 func tFeature(st *tree.Tree, replaceLeafs bool) string {
-	if len(st.Children) != 0 {
-		return ""
+	var sb strings.Builder
+
+	for i, leaf := range st.Leaves() {
+		if i > 0 {
+			sb.WriteString(" ")
+		}
+
+		if replaceLeafs {
+			sb.WriteString(UnknownToken)
+		} else {
+			sb.WriteString(leaf.Label)
+		}
 	}
 
-	if replaceLeafs {
-		return UnknownToken
-	}
-
-	return st.Label
+	return sb.String()
 }

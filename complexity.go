@@ -29,14 +29,16 @@ func O(t *tree.Tree, l int) (int, bool) {
 
 			if len(st.Children) == 0 {
 				numInsertions := 3
-				numTranslations := 1
+				numTranslations := numInsertions * 1
 
 				sum += numInsertions
-				sum += numInsertions * numTranslations
+				sum += numTranslations
 			}
 
 			if len(st.Children) > 0 {
 				numInsertions := 3
+				numTranslations := numInsertions * 1
+
 				numReorderings := numInsertions * combin.NumPermutations(len(st.Children), len(st.Children))
 
 				numPartitionings := 0
@@ -54,6 +56,7 @@ func O(t *tree.Tree, l int) (int, bool) {
 				numPartitionings *= numReorderings
 
 				sum += numInsertions
+				sum += numTranslations
 				sum += numReorderings
 				sum += numPartitionings
 			}

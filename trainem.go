@@ -54,7 +54,7 @@ func initSample(sample *Sample) (*MetaTree, []string, error) {
 		replaceSparseTokens(e, tokenOccurrences)
 	}
 
-	if mt.Tree.Size()+len(mt.Tree.Leaves()) < len(e) {
+	if mt.Tree.Size()+(len(mt.Tree.Leaves())*Config.PhraseLengthLimit) < len(e) {
 		return nil, nil, errors.New("target sentence unreachable")
 	}
 
@@ -88,7 +88,19 @@ func importModel(name string) (*Model, error) {
 		return nil, err
 	}
 
-	return &Model{n, r, t}, nil
+	l, err := Import(name + "-l.gob")
+
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := Import(name + "-f.gob")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &Model{n, r, t, l, f}, nil
 }
 
 func TrainEM(iterations, samples int) {
@@ -113,6 +125,9 @@ func TrainEM(iterations, samples int) {
 	nR := NewCount()
 	nT := NewCount()
 
+	nL := NewCount()
+	nF := NewCount()
+
 	ctx := context.TODO()
 	sem := semaphore.NewWeighted(int64(Config.ConcurrentSampleEvaluations))
 
@@ -130,6 +145,9 @@ func TrainEM(iterations, samples int) {
 		nC.Reset()
 		nR.Reset()
 		nT.Reset()
+
+		nL.Reset()
+		nF.Reset()
 
 		watch.Lap("init")
 
@@ -190,7 +208,23 @@ func TrainEM(iterations, samples int) {
 
 				nC.ForEach(g.insertions, g.InsertionCount)
 				nR.ForEach(g.reorderings, g.ReorderingCount)
-				nT.ForEach(g.translations, g.TranslationCount)
+				nT.ForEach(g.translations, func(feature, key string) (*big.Float, bool) {
+					val, ok := g.TranslationCount(feature, key)
+
+					if ok {
+						fertility := 0
+
+						if key != NullToken {
+							fertility = len(strings.Split(key, " "))
+						}
+
+						nF.Add(feature, strconv.Itoa(fertility), val)
+					}
+
+					return val, ok && key != NullToken
+				})
+
+				nL.ForEach(g.lambda, g.LambdaCount)
 
 				w.Stop()
 
@@ -206,7 +240,7 @@ func TrainEM(iterations, samples int) {
 
 		fmt.Printf("\nAdjusting model weights...\n")
 
-		if err := model.UpdateWeights(nC, nR, nT); err != nil {
+		if err := model.UpdateWeights(nC, nR, nT, nL, nF); err != nil {
 			log.Fatalf("Error updating model weights: %v", err)
 		}
 
@@ -216,6 +250,8 @@ func TrainEM(iterations, samples int) {
 			_ = Export(model.n, strconv.Itoa(i), "n")
 			_ = Export(model.r, strconv.Itoa(i), "r")
 			_ = Export(model.t, strconv.Itoa(i), "t")
+			_ = Export(model.l, strconv.Itoa(i), "l")
+			_ = Export(model.f, strconv.Itoa(i), "f")
 
 			watch.Lap("export")
 		}

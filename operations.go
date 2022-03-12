@@ -70,7 +70,7 @@ func (i Insertion) UnknownKey() string {
 func Insertions(t *tree.Tree, d []string, f [2]string) []Operation {
 	ops := make([]Operation, 0)
 
-	if len(d) < t.Size()+1 {
+	if len(d) < t.Size()+Config.PhraseLengthLimit {
 		ops = append(ops, NewInsertion(None, "", f))
 	}
 
@@ -149,7 +149,8 @@ type Translation struct {
 	feature [2]string
 	key     [2]string
 
-	Word string
+	Word      string
+	Fertility [2]int
 }
 
 const NullToken = "$NULL$"
@@ -164,7 +165,21 @@ func NewTranslation(word string, feature [2]string) Translation {
 		Word:    word,
 	}
 
-	t.key = [2]string{word, UnknownToken}
+	t.Fertility[0] = len(strings.Split(feature[0], " "))
+
+	if word == NullToken {
+		t.Fertility[1] = 0 // len(strings.Split("", " ")) == 1
+	} else {
+		t.Fertility[1] = len(strings.Split(word, " "))
+	}
+
+	unknownKey := UnknownToken
+
+	for i := 0; i < +t.Fertility[1]; i++ {
+		unknownKey += " " + UnknownToken
+	}
+
+	t.key = [2]string{word, unknownKey}
 
 	return t
 }
