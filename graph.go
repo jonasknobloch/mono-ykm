@@ -170,8 +170,6 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 
 	eStr := strings.Join(e, " ")
 
-	n.lambda, n.kappa = m.Lambda(eStr, len(n.tree.Children) == 0)
-
 	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature)) {
 		insertion := op.(Insertion)
 
@@ -238,6 +236,8 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 			}
 
 			if len(n.tree.Children) != 0 {
+				n.lambda, n.kappa = m.Lambda(eStr)
+
 				g.TrackNode(g.lambda, eStr, LambdaKey, n)
 				g.TrackNode(g.lambda, eStr, KappaKey, n)
 			}
@@ -359,8 +359,10 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 
 		prod.Mul(prod, g.Alpha(major))
 
-		tProb.Mul(tProb, major.lambda).Mul(tProb, nProb)
-		rProb.Mul(rProb, major.kappa).Mul(rProb, nProb)
+		if major.lambda != nil && major.kappa != nil {
+			tProb.Mul(tProb, major.lambda).Mul(tProb, nProb)
+			rProb.Mul(rProb, major.kappa).Mul(rProb, nProb)
+		}
 
 		sum.Add(sum, tProb)
 		sum.Add(sum, rProb)

@@ -78,27 +78,23 @@ func (m *Model) Probability(op Operation) *big.Float {
 	return p
 }
 
-func (m *Model) Lambda(feature string, terminal bool) (*big.Float, *big.Float) {
+func (m *Model) Lambda(feature string) (*big.Float, *big.Float) {
 	var lambda *big.Float
 	var kappa *big.Float
 
-	if terminal {
-		lambda = big.NewFloat(1)
-	} else if len(m.l) == 0 {
+	if len(m.l) == 0 {
 		lambda = big.NewFloat(0.5)
-	} else {
-		if _, ok := m.l[feature]; !ok {
-			lambda = new(big.Float)
-		} else {
-			lambda = m.l[feature][LambdaKey]
-			kappa = m.l[feature][KappaKey]
-		}
+		kappa = big.NewFloat(0.5)
+
+		return lambda, kappa
 	}
 
-	if kappa == nil {
-		kappa = big.NewFloat(1)
-		kappa.Sub(kappa, lambda)
+	if _, ok := m.l[feature]; !ok {
+		panic("unknown feature")
 	}
+
+	lambda = m.l[feature][LambdaKey]
+	kappa = m.l[feature][KappaKey]
 
 	return lambda, kappa
 }

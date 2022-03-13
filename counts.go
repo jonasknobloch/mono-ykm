@@ -53,8 +53,10 @@ func (g *Graph) InsideWeight(n *Node, filter [3]string, lambda, kappa *big.Float
 			kappa = n.kappa
 		}
 
-		sumT.Mul(sumT, lambda)
-		sumR.Mul(sumR, kappa)
+		if lambda != nil && kappa != nil {
+			sumT.Mul(sumT, lambda)
+			sumR.Mul(sumR, kappa)
+		}
 
 		sumI.Add(sumI, sumT.Mul(sumT, g.edges[[2]*Node{n, i}]))
 		sumI.Add(sumI, sumR.Mul(sumR, g.edges[[2]*Node{n, i}]))
