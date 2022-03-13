@@ -34,6 +34,7 @@ func init() {
 	Config.SparseTokenThreshold, _, _ = parseEnvInt("SPARSE_TOKEN_THRESHOLD", 1)
 
 	Config.PhraseLengthLimit, _, _ = parseEnvInt("PHRASE_LENGTH_LIMIT", 0)
+	Config.PhraseFrequencyCutoff, _, _ = parseEnvInt("PHRASE_FREQUENCY_CUTOFF", 1)
 
 	Config.TrainingDataPath, _ = parseEnvString("TRAINING_DATA_PATH", "")
 	Config.TrainingIterationLimit, _, _ = parseEnvInt("TRAINING_ITERATION_LIMIT", 1)

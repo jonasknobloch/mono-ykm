@@ -27,6 +27,14 @@ type Graph struct {
 const LambdaKey = "l"
 const KappaKey = "k"
 
+func init() {
+	if *execMode != ModeTrain {
+		return
+	}
+
+	initPhrasalFrequencies()
+}
+
 func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 	n := &Node{
 		tree:  mt.Tree,
@@ -206,7 +214,10 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 		phrasal = phrasal && len(e) <= Config.PhraseLengthLimit
 		phrasal = phrasal && l <= Config.PhraseLengthLimit
 
-		// TODO phrase frequency cutoff
+		if phrasal {
+			frequency, ok := phrasalFrequencies[eStr][i.Substring()]
+			phrasal = !ok || frequency >= Config.PhraseFrequencyCutoff
+		}
 
 		if len(n.tree.Children) == 0 || phrasal {
 			translation := NewTranslation(i.Substring(), mt.Feature(n.tree, TranslationFeature))
