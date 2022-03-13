@@ -240,6 +240,10 @@ func TrainEM(iterations, samples int) {
 
 		fmt.Printf("\nAdjusting model weights...\n")
 
+		if Config.EnableFertilityDecomposition {
+			DecomposeTranslationCount(nT)
+		}
+
 		if err := model.UpdateWeights(nC, nR, nT, nL, nF); err != nil {
 			log.Fatalf("Error updating model weights: %v", err)
 		}

@@ -199,3 +199,21 @@ func (t Translation) UnknownFeature() string {
 func (t Translation) UnknownKey() string {
 	return t.key[1]
 }
+
+func (t Translation) Decompose() []Translation {
+	ts := make([]Translation, 0, t.Fertility[1])
+
+	if t.Fertility[1] == 1 {
+		ts = append(ts, t)
+
+		return ts
+	}
+
+	keys := strings.Split(t.Key(), " ")
+
+	for _, key := range keys {
+		ts = append(ts, NewTranslation(key, t.feature))
+	}
+
+	return ts
+}

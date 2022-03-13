@@ -8,23 +8,24 @@ import (
 )
 
 var Config = struct {
-	ReplaceSparseTokens         bool
-	SparseTokenThreshold        int
-	PhraseLengthLimit           int
-	PhraseFrequencyCutoff       int
-	TrainingDataPath            string
-	TrainingIterationLimit      int
-	TrainingSampleLimit         int
-	TrainingComplexityLimit     int
-	ConcurrentSampleEvaluations int
-	ParaphraseThreshold         float64
-	InitModelPath               string
-	InitModelIteration          int
-	PrintCorpusLikelihood       bool
-	ExportGraphs                bool
-	ExportModel                 bool
-	GraphExportDirectory        string
-	ModelExportDirectory        string
+	ReplaceSparseTokens          bool
+	SparseTokenThreshold         int
+	PhraseLengthLimit            int
+	PhraseFrequencyCutoff        int
+	EnableFertilityDecomposition bool
+	TrainingDataPath             string
+	TrainingIterationLimit       int
+	TrainingSampleLimit          int
+	TrainingComplexityLimit      int
+	ConcurrentSampleEvaluations  int
+	ParaphraseThreshold          float64
+	InitModelPath                string
+	InitModelIteration           int
+	PrintCorpusLikelihood        bool
+	ExportGraphs                 bool
+	ExportModel                  bool
+	GraphExportDirectory         string
+	ModelExportDirectory         string
 }{}
 
 func init() {
@@ -35,6 +36,7 @@ func init() {
 
 	Config.PhraseLengthLimit, _, _ = parseEnvInt("PHRASE_LENGTH_LIMIT", 0)
 	Config.PhraseFrequencyCutoff, _, _ = parseEnvInt("PHRASE_FREQUENCY_CUTOFF", 1)
+	Config.EnableFertilityDecomposition, _, _ = parseEnvBool("ENABLE_FERTILITY_DECOMPOSITION", true)
 
 	Config.TrainingDataPath, _ = parseEnvString("TRAINING_DATA_PATH", "")
 	Config.TrainingIterationLimit, _, _ = parseEnvInt("TRAINING_ITERATION_LIMIT", 1)

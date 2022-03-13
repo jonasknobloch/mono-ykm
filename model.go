@@ -57,25 +57,40 @@ func (m *Model) Probability(op Operation) *big.Float {
 		return new(big.Float)
 	}
 
-	// TODO fertility decomposition
+	operationProbability := func(op Operation) *big.Float {
+		features := []string{op.Feature(), op.UnknownFeature()}
+		keys := []string{op.Key(), op.UnknownKey()}
 
-	features := []string{op.Feature(), op.UnknownFeature()}
-	keys := []string{op.Key(), op.UnknownKey()}
-
-	p := probability(m.Table(op), features, keys)
+		return probability(m.Table(op), features, keys)
+	}
 
 	if translation, ok := op.(Translation); ok {
 		key := strconv.Itoa(translation.Fertility[1])
+		features := []string{op.Feature(), op.UnknownFeature()}
 		fertility := probability(m.f, features, []string{key})
 
 		if translation.Fertility[1] == 0 {
 			return fertility
 		}
 
-		p = new(big.Float).Mul(fertility, p)
+		p := new(big.Float).Copy(fertility)
+
+		if translation.Fertility[1] == 1 || !Config.EnableFertilityDecomposition {
+			p.Mul(p, operationProbability(translation))
+
+			return p
+		}
+
+		if translation.Fertility[1] > 1 {
+			for _, t := range translation.Decompose() {
+				p.Mul(p, operationProbability(t))
+			}
+		}
+
+		return p
 	}
 
-	return p
+	return operationProbability(op)
 }
 
 func (m *Model) Lambda(feature string) (*big.Float, *big.Float) {
