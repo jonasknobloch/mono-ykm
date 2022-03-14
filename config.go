@@ -10,9 +10,10 @@ import (
 var Config = struct {
 	ReplaceSparseTokens          bool
 	SparseTokenThreshold         int
+	EnablePhrasalTranslations    bool
+	EnableFertilityDecomposition bool
 	PhraseLengthLimit            int
 	PhraseFrequencyCutoff        int
-	EnableFertilityDecomposition bool
 	TrainingDataPath             string
 	TrainingIterationLimit       int
 	TrainingSampleLimit          int
@@ -34,9 +35,10 @@ func init() {
 	Config.ReplaceSparseTokens, _, _ = parseEnvBool("REPLACE_SPARSE_TOKENS", false)
 	Config.SparseTokenThreshold, _, _ = parseEnvInt("SPARSE_TOKEN_THRESHOLD", 1)
 
+	Config.EnablePhrasalTranslations, _, _ = parseEnvBool("ENABLE_PHRASAL_TRANSLATIONS", true)
+	Config.EnableFertilityDecomposition, _, _ = parseEnvBool("ENABLE_FERTILITY_DECOMPOSITION", true)
 	Config.PhraseLengthLimit, _, _ = parseEnvInt("PHRASE_LENGTH_LIMIT", 0)
 	Config.PhraseFrequencyCutoff, _, _ = parseEnvInt("PHRASE_FREQUENCY_CUTOFF", 1)
-	Config.EnableFertilityDecomposition, _, _ = parseEnvBool("ENABLE_FERTILITY_DECOMPOSITION", true)
 
 	Config.TrainingDataPath, _ = parseEnvString("TRAINING_DATA_PATH", "")
 	Config.TrainingIterationLimit, _, _ = parseEnvInt("TRAINING_ITERATION_LIMIT", 1)

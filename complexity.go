@@ -37,7 +37,11 @@ func O(t *tree.Tree, l int) (int, bool) {
 
 			if len(st.Children) > 0 {
 				numInsertions := 3
-				numTranslations := numInsertions * 1
+				numTranslations := 0
+
+				if Config.EnablePhrasalTranslations {
+					numTranslations = numInsertions * 1
+				}
 
 				numReorderings := numInsertions * combin.NumPermutations(len(st.Children), len(st.Children))
 

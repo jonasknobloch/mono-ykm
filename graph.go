@@ -132,7 +132,15 @@ func (g *Graph) AddOperation(op Operation, n *Node) {
 }
 
 func reachable(t *tree.Tree, l int) bool {
-	return t.Size()+(len(t.Leaves())*Config.PhraseLengthLimit) >= l
+	max := t.Size()
+
+	if !Config.EnablePhrasalTranslations {
+		max += len(t.Leaves())
+	} else {
+		max += len(t.Leaves()) * Config.PhraseLengthLimit
+	}
+
+	return l <= max
 }
 
 func partitionings(reordering *Node) [][]int {
@@ -208,7 +216,7 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 		g.AddEdge(n, i, m.Probability(insertion))
 		g.AddOperation(insertion, n)
 
-		phrasal := true
+		phrasal := Config.EnablePhrasalTranslations
 
 		phrasal = phrasal && len(e) > 1
 		phrasal = phrasal && l > 1

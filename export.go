@@ -10,10 +10,6 @@ import (
 )
 
 func Export(t map[string]map[string]*big.Float, stubs ...string) error {
-	if len(t) == 0 {
-		return nil
-	}
-
 	name := fmt.Sprintf("model_%s.gob", strings.Join(stubs, "-"))
 	file, err := os.Create(filepath.Join(Config.ModelExportDirectory, name))
 

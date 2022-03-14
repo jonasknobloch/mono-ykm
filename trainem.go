@@ -211,6 +211,10 @@ func TrainEM(iterations, samples int) {
 				nT.ForEach(g.translations, func(feature, key string) (*big.Float, bool) {
 					val, ok := g.TranslationCount(feature, key)
 
+					if !Config.EnablePhrasalTranslations {
+						return val, ok
+					}
+
 					if ok {
 						fertility := 0
 

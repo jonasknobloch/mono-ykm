@@ -64,7 +64,7 @@ func (m *Model) Probability(op Operation) *big.Float {
 		return probability(m.Table(op), features, keys)
 	}
 
-	if translation, ok := op.(Translation); ok {
+	if translation, ok := op.(Translation); ok && Config.EnablePhrasalTranslations {
 		key := strconv.Itoa(translation.Fertility[1])
 		features := []string{op.Feature(), op.UnknownFeature()}
 		fertility := probability(m.f, features, []string{key})
