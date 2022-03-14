@@ -131,11 +131,13 @@ func (g *Graph) AddOperation(op Operation, n *Node) {
 	g.TrackNode(m, feature, key, n)
 }
 
+func reachable(t *tree.Tree, l int) bool {
+	return t.Size()+(len(t.Leaves())*Config.PhraseLengthLimit) >= l
+}
+
 func partitionings(reordering *Node) [][]int {
 	validate := func(p, i int) bool {
-		st := reordering.tree.Children[reordering.r.Reordering[i]]
-
-		return !(p > st.Size()+(len(st.Leaves())*Config.PhraseLengthLimit))
+		return reachable(reordering.tree.Children[reordering.r.Reordering[i]], p)
 	}
 
 	var p func(n, k int, r [][]int) [][]int

@@ -54,7 +54,7 @@ func initSample(sample *Sample) (*MetaTree, []string, error) {
 		replaceSparseTokens(e, tokenOccurrences)
 	}
 
-	if mt.Tree.Size()+(len(mt.Tree.Leaves())*Config.PhraseLengthLimit) < len(e) {
+	if !reachable(mt.Tree, len(e)) {
 		return nil, nil, errors.New("target sentence unreachable")
 	}
 
