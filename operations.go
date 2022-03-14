@@ -74,6 +74,14 @@ func Insertions(t *tree.Tree, d []string, f [2]string) []Operation {
 		ops = append(ops, NewInsertion(None, "", f))
 	}
 
+	if !Config.EnableInteriorInsertions && len(t.Children) != 0 {
+		return ops
+	}
+
+	if !Config.EnableTerminalInsertions && len(t.Children) == 0 {
+		return ops
+	}
+
 	if len(d) > 0 {
 		ops = append(ops, NewInsertion(Left, d[0], f))
 		ops = append(ops, NewInsertion(Right, d[len(d)-1], f))

@@ -10,6 +10,8 @@ import (
 var Config = struct {
 	ReplaceSparseTokens          bool
 	SparseTokenThreshold         int
+	EnableInteriorInsertions     bool
+	EnableTerminalInsertions     bool
 	EnablePhrasalTranslations    bool
 	EnableFertilityDecomposition bool
 	PhraseLengthLimit            int
@@ -34,6 +36,9 @@ func init() {
 
 	Config.ReplaceSparseTokens, _, _ = parseEnvBool("REPLACE_SPARSE_TOKENS", false)
 	Config.SparseTokenThreshold, _, _ = parseEnvInt("SPARSE_TOKEN_THRESHOLD", 1)
+
+	Config.EnableInteriorInsertions, _, _ = parseEnvBool("ENABLE_INTERIOR_INSERTIONS", false)
+	Config.EnableTerminalInsertions, _, _ = parseEnvBool("ENABLE_TERMINAL_INSERTIONS", true)
 
 	Config.EnablePhrasalTranslations, _, _ = parseEnvBool("ENABLE_PHRASAL_TRANSLATIONS", true)
 	Config.EnableFertilityDecomposition, _, _ = parseEnvBool("ENABLE_FERTILITY_DECOMPOSITION", true)

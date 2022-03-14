@@ -132,12 +132,23 @@ func (g *Graph) AddOperation(op Operation, n *Node) {
 }
 
 func reachable(t *tree.Tree, l int) bool {
-	max := t.Size()
+	size := t.Size()
+	leaves := t.Leaves()
+
+	max := 0
+
+	if Config.EnableInteriorInsertions {
+		max += size - len(leaves)
+	}
+
+	if Config.EnableTerminalInsertions {
+		max += len(leaves)
+	}
 
 	if !Config.EnablePhrasalTranslations {
-		max += len(t.Leaves())
+		max += len(leaves)
 	} else {
-		max += len(t.Leaves()) * Config.PhraseLengthLimit
+		max += len(leaves) * Config.PhraseLengthLimit
 	}
 
 	return l <= max

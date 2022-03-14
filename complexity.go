@@ -28,7 +28,12 @@ func O(t *tree.Tree, l int) (int, bool) {
 			sum := 1 // major node
 
 			if len(st.Children) == 0 {
-				numInsertions := 3
+				numInsertions := 1
+
+				if Config.EnableTerminalInsertions {
+					numInsertions = 3
+				}
+
 				numTranslations := numInsertions * 1
 
 				sum += numInsertions
@@ -36,7 +41,12 @@ func O(t *tree.Tree, l int) (int, bool) {
 			}
 
 			if len(st.Children) > 0 {
-				numInsertions := 3
+				numInsertions := 1
+
+				if Config.EnableInteriorInsertions {
+					numInsertions = 3
+				}
+
 				numTranslations := 0
 
 				if Config.EnablePhrasalTranslations {
