@@ -362,42 +362,42 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 		insertion := g.pred[reordering][0]
 		major := g.pred[insertion][0]
 
-		nProb := new(big.Float).Copy(g.edges[[2]*Node{major, insertion}])
-		rProb := new(big.Float).Copy(g.edges[[2]*Node{insertion, reordering}])
+		prod.Mul(prod, g.Alpha(major))
 
-		var translation *Node
-		var tProb *big.Float
+		prod.Mul(prod, g.edges[[2]*Node{major, insertion}])
 
-		for _, t := range g.succ[insertion] {
-			if t.nType == FinalNode {
-				translation = t
-				break
+		rProb := new(big.Float)
+		tProb := new(big.Float)
+
+		rProb.Copy(g.edges[[2]*Node{insertion, reordering}])
+
+		if major.lambda != nil && major.kappa != nil {
+			for i, translation := range g.succ[insertion] {
+				if translation.nType == FinalNode {
+					tProb.Copy(g.edges[[2]*Node{insertion, translation}])
+					break
+				}
+
+				if i == len(g.succ)-1 {
+					panic("final node missing")
+				}
 			}
+
+			tProb.Mul(tProb, major.lambda)
+			rProb.Mul(rProb, major.kappa)
 		}
 
-		tProb = new(big.Float)
-
-		if translation != nil {
-			tProb.Copy(g.edges[[2]*Node{insertion, translation}])
-		}
+		prod.Mul(prod, rProb.Add(rProb, tProb))
 
 		for _, sibling := range g.succ[partitioning] {
 			if sibling == n {
 				continue
 			}
 
-			rProb.Mul(prod, g.Beta(sibling))
+			prod.Mul(prod, g.Beta(sibling))
 		}
 
-		prod.Mul(prod, g.Alpha(major))
-
-		if major.lambda != nil && major.kappa != nil {
-			tProb.Mul(tProb, major.lambda).Mul(tProb, nProb)
-			rProb.Mul(rProb, major.kappa).Mul(rProb, nProb)
-		}
-
-		sum.Add(sum, tProb)
-		sum.Add(sum, rProb)
+		sum.Add(sum, prod)
 	}
 
 	g.pAlpha[n] = sum
