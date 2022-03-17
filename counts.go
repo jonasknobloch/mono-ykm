@@ -5,6 +5,14 @@ import (
 )
 
 func (g *Graph) InsideWeight(n *Node, filter [3]string, lambda, kappa *big.Float) *big.Float {
+	if lambda == nil {
+		lambda = n.lambda
+	}
+
+	if kappa == nil {
+		kappa = n.kappa
+	}
+
 	sumI := new(big.Float)
 
 	for _, i := range g.succ[n] {
@@ -41,20 +49,19 @@ func (g *Graph) InsideWeight(n *Node, filter [3]string, lambda, kappa *big.Float
 					continue
 				}
 
-				sumT.Add(sumT, g.edges[[2]*Node{i, rt}])
+				p := new(big.Float).Copy(g.edges[[2]*Node{i, rt}])
+
+				if rt.t.IsPhrasal() {
+					p.Mul(p, lambda)
+				} else {
+					p.Mul(p, kappa)
+				}
+
+				sumT.Add(sumT, p)
 			}
 		}
 
-		if lambda == nil {
-			lambda = n.lambda
-		}
-
-		if kappa == nil {
-			kappa = n.kappa
-		}
-
-		if lambda != nil && kappa != nil {
-			sumT.Mul(sumT, lambda)
+		if len(n.tree.Children) != 0 {
 			sumR.Mul(sumR, kappa)
 		}
 

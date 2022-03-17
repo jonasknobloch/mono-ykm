@@ -208,6 +208,10 @@ func (t Translation) UnknownKey() string {
 	return t.key[1]
 }
 
+func (t Translation) IsPhrasal() bool {
+	return t.Fertility[0] > 1 || t.Fertility[1] > 1
+}
+
 func (t Translation) Decompose() []Translation {
 	ts := make([]Translation, 0, t.Fertility[1])
 

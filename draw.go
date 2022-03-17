@@ -49,6 +49,12 @@ func (g *Graph) Draw(stubs ...string) (int, error) {
 			sb.WriteString(fmt.Sprintf("| %s ", n.tree.Sentence()))
 			sb.WriteString(fmt.Sprintf("| %s ", n.t.Key()))
 
+			if n.t.IsPhrasal() {
+				sb.WriteString("| phrasal ")
+			} else {
+				sb.WriteString("| lexical ")
+			}
+
 			sb.WriteString("\"]\n")
 		}
 

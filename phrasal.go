@@ -29,6 +29,10 @@ func countPhrasalPairs() map[string]map[string]int {
 			return false
 		}
 
+		if len(et) < 2 && len(es) < 2 {
+			return false
+		}
+
 		if len(es) > Config.PhraseLengthLimit || len(et) > Config.PhraseLengthLimit {
 			return false
 		}
@@ -56,10 +60,6 @@ func countPhrasalPairs() map[string]map[string]int {
 		}
 
 		mt.Tree.Walk(func(st *tree.Tree) {
-			if len(st.Children) == 0 {
-				return
-			}
-
 			source := st.Sentence()
 			sourceTokens := strings.Split(source, " ")
 
@@ -76,7 +76,6 @@ func countPhrasalPairs() map[string]map[string]int {
 					add(source, strings.Join(ngram, " "))
 				}
 			}
-
 		})
 
 		counted++
