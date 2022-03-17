@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"math/big"
 	"strings"
 )
@@ -14,8 +15,13 @@ func DecomposeTranslationCount(count *Count) {
 				continue
 			}
 
-			p := new(big.Float).Copy(val)
-			p.Quo(p, big.NewFloat(float64(len(target))))
+			var p *big.Float
+
+			if f, _ := val.Float64(); !math.IsInf(f, 0) {
+				p = big.NewFloat(math.Pow(f, 1/float64(len(target))))
+			} else {
+				p = new(big.Float).Copy(val) // TODO estimate x^(1/n)
+			}
 
 			for _, token := range target {
 				count.Add(feature, token, p)
