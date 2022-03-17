@@ -32,6 +32,10 @@ func init() {
 		return
 	}
 
+	if !Config.EnablePhrasalTranslations {
+		return
+	}
+
 	initPhrasalFrequencies()
 }
 
@@ -229,15 +233,9 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 
 		phrasal := Config.EnablePhrasalTranslations
 
-		phrasal = phrasal && len(e) > 1
-		phrasal = phrasal && l > 1
-
-		phrasal = phrasal && len(e) <= Config.PhraseLengthLimit
-		phrasal = phrasal && l <= Config.PhraseLengthLimit
-
-		if phrasal {
+		if phrasal && phrasalFrequencies != nil {
 			frequency, ok := phrasalFrequencies[eStr][i.Substring()]
-			phrasal = !ok || frequency >= Config.PhraseFrequencyCutoff
+			phrasal = ok && frequency >= Config.PhraseFrequencyCutoff
 		}
 
 		if len(n.tree.Children) == 0 || phrasal {

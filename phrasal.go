@@ -21,7 +21,11 @@ func countPhrasalPairs() map[string]map[string]int {
 	pairs := make(map[string]map[string]int)
 
 	valid := func(es, et []string) bool {
-		if len(es) < 2 || len(et) < 2 {
+		if len(es) < 2 && !Config.EnableInterior1ToNTranslations {
+			return false
+		}
+
+		if len(et) < 2 && !Config.EnableInteriorNTo1Translations {
 			return false
 		}
 
@@ -52,8 +56,16 @@ func countPhrasalPairs() map[string]map[string]int {
 		}
 
 		mt.Tree.Walk(func(st *tree.Tree) {
+			if len(st.Children) == 0 {
+				return
+			}
+
 			source := st.Sentence()
 			sourceTokens := strings.Split(source, " ")
+
+			if valid(sourceTokens, []string{}) {
+				add(source, "")
+			}
 
 			for i := 1; i <= Config.PhraseLengthLimit; i++ {
 				for _, ngram := range utility.NGrams(e, i, nil) {
