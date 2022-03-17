@@ -33,7 +33,11 @@ func (g *Graph) Draw(stubs ...string) (int, error) {
 			sb.WriteString(fmt.Sprintf("%s ", n.tree.Label))
 			sb.WriteString(fmt.Sprintf("| %s ", n.tree.Sentence()))
 			sb.WriteString(fmt.Sprintf("| %s ", n.Substring()))
-			sb.WriteString(fmt.Sprintf(" | %e | %e", g.pAlpha[n], g.pBeta[n]))
+			sb.WriteString(fmt.Sprintf("| { α: %e | β: %e }", g.pAlpha[n], g.pBeta[n]))
+
+			if n.lambda != nil && n.kappa != nil {
+				sb.WriteString(fmt.Sprintf("| { λ: %e | κ: %e }", n.lambda, n.kappa))
+			}
 
 			sb.WriteString("\"]\n")
 		}
