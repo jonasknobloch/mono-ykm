@@ -1,3 +1,3 @@
 ID	Tree	Sentence	Label
 foo	(σ (γ α) (γ β))	s b a	1
-bar	(σ (s (γ α) (γ β)))	α β	1
+bar	(σ (s (γ b) (γ a)))	α β	1
