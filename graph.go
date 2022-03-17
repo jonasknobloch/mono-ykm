@@ -203,6 +203,13 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 
 	eStr := strings.Join(e, " ")
 
+	if len(n.tree.Children) != 0 {
+		n.lambda, n.kappa = m.Lambda(eStr)
+
+		g.TrackNode(g.lambda, eStr, LambdaKey, n)
+		g.TrackNode(g.lambda, eStr, KappaKey, n)
+	}
+
 	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature)) {
 		insertion := op.(Insertion)
 
@@ -257,13 +264,6 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 
 			if len(n.tree.Children) == 0 {
 				continue
-			}
-
-			if ms, ok := g.lambda[eStr][LambdaKey]; !ok || ms[len(ms)-1] != n {
-				n.lambda, n.kappa = m.Lambda(eStr)
-
-				g.TrackNode(g.lambda, eStr, LambdaKey, n)
-				g.TrackNode(g.lambda, eStr, KappaKey, n)
 			}
 		}
 
