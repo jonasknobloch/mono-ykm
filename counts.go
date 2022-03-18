@@ -45,15 +45,15 @@ func (g *Graph) InsideWeight(n *Node, filter [3]string, lambda, kappa *big.Float
 			}
 		}
 
-		if lambda == nil {
-			lambda = n.lambda
-		}
+		if n.lambda != nil && n.kappa != nil {
+			if lambda == nil {
+				lambda = n.lambda
+			}
 
-		if kappa == nil {
-			kappa = n.kappa
-		}
+			if kappa == nil {
+				kappa = n.kappa
+			}
 
-		if lambda != nil && kappa != nil {
 			sumT.Mul(sumT, lambda)
 			sumR.Mul(sumR, kappa)
 		}
