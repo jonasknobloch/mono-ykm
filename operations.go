@@ -70,7 +70,7 @@ func (i Insertion) UnknownKey() string {
 func Insertions(t *tree.Tree, d []string, f [2]string) []Operation {
 	ops := make([]Operation, 0)
 
-	if reachable(t, len(d)-1) {
+	if len(d) == 0 || reachable(t, len(d)+1) {
 		ops = append(ops, NewInsertion(None, "", f))
 	}
 
