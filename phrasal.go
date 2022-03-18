@@ -21,6 +21,10 @@ func countPhrasalPairs() map[string]map[string]int {
 	pairs := make(map[string]map[string]int)
 
 	valid := func(es, et []string) bool {
+		if len(es) < 2 && len(et) < 2 {
+			return false
+		}
+
 		if len(es) < 2 && !Config.EnableInterior1ToNTranslations {
 			return false
 		}

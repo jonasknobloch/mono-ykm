@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/jonasknobloch/jinn/pkg/tree"
 	"math/big"
 	"strings"
@@ -39,7 +40,7 @@ func init() {
 	initPhrasalFrequencies()
 }
 
-func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
+func NewGraph(mt *MetaTree, f []string, m *Model) (*Graph, error) {
 	n := &Node{
 		tree:  mt.Tree,
 		f:     f,
@@ -78,14 +79,28 @@ func NewGraph(mt *MetaTree, f []string, m *Model) *Graph {
 		g.Alpha(node)
 	}
 
-	return g
+	var err error
+
+	if !g.nodes[0].valid {
+		err = errors.New("invalid root node")
+	}
+
+	return g, err
 }
 
 func (g *Graph) AddNode(n *Node) {
+	if !n.valid && len(g.nodes) != 0 {
+		panic("invalid node")
+	}
+
 	g.nodes = append(g.nodes, n)
 }
 
 func (g *Graph) AddEdge(n1, n2 *Node, w *big.Float) {
+	if !n1.valid || !n2.valid {
+		panic("invalid edge")
+	}
+
 	g.edges[[2]*Node{n1, n2}] = w
 
 	if _, ok := g.pred[n2]; !ok {
@@ -151,8 +166,10 @@ func reachable(t *tree.Tree, l int) bool {
 
 	if !Config.EnablePhrasalTranslations {
 		max += len(leaves)
+	} else if len(t.Children) == 0 {
+		max += len(leaves)
 	} else {
-		max += len(leaves) * Config.PhraseLengthLimit
+		max += len(leaves) * Config.PhraseLengthLimit // assumes each leaf has a preceding POS tag
 	}
 
 	return l <= max
@@ -203,13 +220,6 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 
 	eStr := strings.Join(e, " ")
 
-	if len(n.tree.Children) != 0 {
-		n.lambda, n.kappa = m.Lambda(eStr)
-
-		g.TrackNode(g.lambda, eStr, LambdaKey, n)
-		g.TrackNode(g.lambda, eStr, KappaKey, n)
-	}
-
 	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature)) {
 		insertion := op.(Insertion)
 
@@ -234,18 +244,14 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 			nType: SubNode,
 		}
 
-		g.AddNode(i)
-		g.AddEdge(n, i, m.Probability(insertion))
-		g.AddOperation(insertion, n)
-
-		phrasal := Config.EnablePhrasalTranslations
+		phrasal := len(n.tree.Children) != 0 && Config.EnablePhrasalTranslations
 
 		if phrasal && phrasalFrequencies != nil {
 			frequency, ok := phrasalFrequencies[eStr][i.Substring()]
 			phrasal = ok && frequency >= Config.PhraseFrequencyCutoff
 		}
 
-		if len(n.tree.Children) == 0 || phrasal {
+		if (len(n.tree.Children) == 0 && i.l < 2) || phrasal {
 			translation := NewTranslation(i.Substring(), mt.Feature(n.tree, TranslationFeature))
 
 			f := &Node{
@@ -258,13 +264,13 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 				nType: FinalNode,
 			}
 
+			f.valid = true
+			i.valid = true
+			n.valid = true
+
 			g.AddNode(f)
 			g.AddEdge(i, f, m.Probability(translation))
 			g.AddOperation(translation, n)
-
-			if len(n.tree.Children) == 0 {
-				continue
-			}
 		}
 
 		for _, op := range Reorderings(n.tree, mt.Feature(n.tree, ReorderingFeature)) {
@@ -280,10 +286,6 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 				nType: SubNode,
 			}
 
-			g.AddNode(r)
-			g.AddEdge(i, r, m.Probability(reordering))
-			g.AddOperation(reordering, n)
-
 			for _, partitioning := range partitionings(r) {
 				p := &Node{
 					n:     r.n,
@@ -294,12 +296,13 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 					k:     r.k,
 					l:     r.l,
 					nType: SubNode,
+					valid: true,
 				}
 
-				g.AddNode(p)
-				g.AddEdge(r, p, big.NewFloat(1))
-
 				k := r.k
+
+				nodes := make(map[*Node]struct{}) // new major nodes
+				edges := make([][2]*Node, 0)      // new p -> major edges
 
 				for i := 0; i < len(r.tree.Children); i++ {
 					c := r.tree.Children[p.r.Reordering[i]]
@@ -323,14 +326,59 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 					if _, ok := g.major[c][sub]; !ok {
 						g.major[c][sub] = major
 
-						g.AddNode(major)
+						nodes[major] = struct{}{}
+
 						g.Expand(major, m, mt)
 					}
 
-					g.AddEdge(p, g.major[c][sub], big.NewFloat(1))
+					p.valid = p.valid && g.major[c][sub].valid
+
+					if !p.valid {
+						break
+					}
+
+					edges = append(edges, [2]*Node{p, g.major[c][sub]})
+				}
+
+				if p.valid {
+					for node := range nodes {
+						g.AddNode(node)
+					}
+
+					for _, edge := range edges {
+						g.AddEdge(edge[0], edge[1], big.NewFloat(1))
+					}
+				}
+
+				r.valid = r.valid || p.valid
+				i.valid = i.valid || r.valid
+				n.valid = n.valid || i.valid
+
+				if r.valid && p.valid {
+					g.AddNode(p)
+					g.AddEdge(r, p, big.NewFloat(1))
 				}
 			}
+
+			if i.valid && r.valid {
+				g.AddNode(r)
+				g.AddEdge(i, r, m.Probability(reordering))
+				g.AddOperation(reordering, n)
+			}
 		}
+
+		if n.valid && i.valid {
+			g.AddNode(i)
+			g.AddEdge(n, i, m.Probability(insertion))
+			g.AddOperation(insertion, n)
+		}
+	}
+
+	if n.valid && len(n.tree.Children) != 0 {
+		n.lambda, n.kappa = m.Lambda(eStr)
+
+		g.TrackNode(g.lambda, eStr, LambdaKey, n)
+		g.TrackNode(g.lambda, eStr, KappaKey, n)
 	}
 }
 

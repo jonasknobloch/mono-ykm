@@ -194,7 +194,13 @@ func TrainEM(iterations, samples int) {
 
 				w.Start()
 
-				g := NewGraph(mt, e, model)
+				g, err := NewGraph(mt, e, model)
+
+				if err != nil {
+					skip++
+					fmt.Printf("Skipped sample %s (%s)\n", sample.ID, err)
+					return
+				}
 
 				p := g.pBeta[g.nodes[0]]
 

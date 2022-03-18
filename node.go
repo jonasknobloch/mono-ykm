@@ -26,6 +26,7 @@ type Node struct {
 	nType  NodeType
 	lambda *big.Float
 	kappa  *big.Float
+	valid  bool
 }
 
 func (n *Node) Substring() string {

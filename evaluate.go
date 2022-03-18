@@ -57,7 +57,12 @@ func Evaluate() {
 			defer sem.Release(1)
 			defer wg.Done()
 
-			g := NewGraph(mt, e, model)
+			g, err := NewGraph(mt, e, model)
+
+			if err != nil {
+				return
+			}
+
 			p := g.pBeta[g.nodes[0]]
 
 			if sample.Label && p.Cmp(pth) == 1 {
