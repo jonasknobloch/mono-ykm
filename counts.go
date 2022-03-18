@@ -51,10 +51,12 @@ func (g *Graph) InsideWeight(n *Node, filter [3]string, lambda, kappa *big.Float
 
 				p := new(big.Float).Copy(g.edges[[2]*Node{i, rt}])
 
-				if rt.t.IsPhrasal() {
-					p.Mul(p, lambda)
-				} else {
-					p.Mul(p, kappa)
+				if len(n.tree.Children) != 0 || Config.EnableTerminal1ToNTranslations {
+					if rt.t.IsPhrasal() {
+						p.Mul(p, lambda)
+					} else {
+						p.Mul(p, kappa)
+					}
 				}
 
 				sumT.Add(sumT, p)

@@ -15,6 +15,7 @@ var Config = struct {
 	EnablePhrasalTranslations      bool
 	EnableInterior1ToNTranslations bool
 	EnableInteriorNTo1Translations bool
+	EnableTerminal1ToNTranslations bool
 	EnableFertilityDecomposition   bool
 	PhraseLengthLimit              int
 	PhraseFrequencyCutoff          int
@@ -45,6 +46,7 @@ func init() {
 	Config.EnablePhrasalTranslations, _, _ = parseEnvBool("ENABLE_PHRASAL_TRANSLATIONS", true)
 	Config.EnableInterior1ToNTranslations, _, _ = parseEnvBool("ENABLE_INTERIOR_1_TO_N_TRANSLATIONS", true)
 	Config.EnableInteriorNTo1Translations, _, _ = parseEnvBool("ENABLE_INTERIOR_N_TO_1_TRANSLATIONS", true)
+	Config.EnableTerminal1ToNTranslations, _, _ = parseEnvBool("ENABLE_TERMINAL_1_TO_N_TRANSLATIONS", false)
 	Config.EnableFertilityDecomposition, _, _ = parseEnvBool("ENABLE_FERTILITY_DECOMPOSITION", true)
 	Config.PhraseLengthLimit, _, _ = parseEnvInt("PHRASE_LENGTH_LIMIT", 0)
 	Config.PhraseFrequencyCutoff, _, _ = parseEnvInt("PHRASE_FREQUENCY_CUTOFF", 1)

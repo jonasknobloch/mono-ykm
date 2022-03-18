@@ -60,6 +60,10 @@ func countPhrasalPairs() map[string]map[string]int {
 		}
 
 		mt.Tree.Walk(func(st *tree.Tree) {
+			if !Config.EnableTerminal1ToNTranslations {
+				return
+			}
+
 			source := st.Sentence()
 			sourceTokens := strings.Split(source, " ")
 

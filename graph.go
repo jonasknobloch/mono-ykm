@@ -203,10 +203,12 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 
 	eStr := strings.Join(e, " ")
 
-	n.lambda, n.kappa = m.Lambda(eStr)
+	if len(n.tree.Children) != 0 || Config.EnableTerminal1ToNTranslations {
+		n.lambda, n.kappa = m.Lambda(eStr)
 
-	g.TrackNode(g.lambda, eStr, LambdaKey, n)
-	g.TrackNode(g.lambda, eStr, KappaKey, n)
+		g.TrackNode(g.lambda, eStr, LambdaKey, n)
+		g.TrackNode(g.lambda, eStr, KappaKey, n)
+	}
 
 	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature)) {
 		insertion := op.(Insertion)
@@ -237,6 +239,8 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 		g.AddOperation(insertion, n)
 
 		phrasal := Config.EnablePhrasalTranslations
+
+		phrasal = phrasal && (len(n.tree.Children) != 0 || Config.EnableTerminal1ToNTranslations)
 
 		if phrasal && phrasalFrequencies != nil {
 			frequency, ok := phrasalFrequencies[eStr][i.Substring()]
