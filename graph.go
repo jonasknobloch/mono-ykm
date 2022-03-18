@@ -28,18 +28,6 @@ type Graph struct {
 const LambdaKey = "l"
 const KappaKey = "k"
 
-func init() {
-	if *execMode != ModeTrain {
-		return
-	}
-
-	if !Config.EnablePhrasalTranslations {
-		return
-	}
-
-	initPhrasalFrequencies()
-}
-
 func NewGraph(mt *MetaTree, f []string, m *Model) (*Graph, error) {
 	n := &Node{
 		tree:  mt.Tree,

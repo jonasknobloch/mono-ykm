@@ -108,6 +108,10 @@ func TrainEM(iterations, samples int) {
 		initTokenOccurrences()
 	}
 
+	if Config.EnablePhrasalTranslations {
+		initPhrasalFrequencies()
+	}
+
 	var o int
 
 	if Config.InitModelPath != "" {
