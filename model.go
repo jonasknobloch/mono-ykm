@@ -105,7 +105,14 @@ func (m *Model) Lambda(feature string) (*big.Float, *big.Float) {
 	}
 
 	if _, ok := m.l[feature]; !ok {
-		panic("unknown feature")
+		if *execMode == ModeTrain {
+			panic("unknown feature")
+		}
+
+		lambda = new(big.Float)
+		kappa = big.NewFloat(1)
+
+		return lambda, kappa
 	}
 
 	lambda = m.l[feature][LambdaKey]
