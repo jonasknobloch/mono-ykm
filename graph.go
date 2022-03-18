@@ -363,21 +363,15 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 
 		rProb.Copy(g.edges[[2]*Node{insertion, reordering}])
 
-		if major.lambda != nil && major.kappa != nil {
-			for i, translation := range g.succ[insertion] {
-				if translation.nType == FinalNode {
-					tProb.Copy(g.edges[[2]*Node{insertion, translation}])
-					break
-				}
-
-				if i == len(g.succ)-1 {
-					panic("final node missing")
-				}
+		for _, translation := range g.succ[insertion] {
+			if translation.nType == FinalNode {
+				tProb.Copy(g.edges[[2]*Node{insertion, translation}])
+				break
 			}
-
-			tProb.Mul(tProb, major.lambda)
-			rProb.Mul(rProb, major.kappa)
 		}
+
+		tProb.Mul(tProb, major.lambda)
+		rProb.Mul(rProb, major.kappa)
 
 		prod.Mul(prod, rProb.Add(rProb, tProb))
 
