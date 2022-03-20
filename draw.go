@@ -39,6 +39,10 @@ func (g *Graph) Draw(stubs ...string) (int, error) {
 				sb.WriteString(fmt.Sprintf("| { λ: %e | κ: %e }", n.lambda, n.kappa))
 			}
 
+			if !n.valid {
+				sb.WriteString("| pruned")
+			}
+
 			sb.WriteString("\"]\n")
 		}
 
@@ -48,6 +52,10 @@ func (g *Graph) Draw(stubs ...string) (int, error) {
 			sb.WriteString(fmt.Sprintf("%s ", n.tree.Label))
 			sb.WriteString(fmt.Sprintf("| %s ", n.tree.Sentence()))
 			sb.WriteString(fmt.Sprintf("| %s ", n.t.Key()))
+
+			if !n.valid {
+				sb.WriteString("| pruned")
+			}
 
 			sb.WriteString("\"]\n")
 		}
@@ -61,6 +69,10 @@ func (g *Graph) Draw(stubs ...string) (int, error) {
 				sb.WriteString(fmt.Sprintf("%s ", n.r.Key()))
 			} else if n.n.Key() != "" {
 				sb.WriteString(fmt.Sprintf("%s ", n.n.Key()))
+			}
+
+			if !n.valid {
+				sb.WriteString("| pruned")
 			}
 
 			sb.WriteString("\"]\n")

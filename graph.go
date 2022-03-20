@@ -57,6 +57,15 @@ func NewGraph(mt *MetaTree, f []string, m *Model) (*Graph, error) {
 
 	g.AddNode(n)
 	g.Expand(n, m, mt)
+
+	if !g.nodes[0].valid {
+		return g, errors.New("invalid root node")
+	}
+
+	if Config.EnablePhrasalTranslations {
+		g.InvalidateUnreachableNodes()
+	}
+
 	g.Beta(n)
 
 	for _, node := range g.nodes {
@@ -64,31 +73,29 @@ func NewGraph(mt *MetaTree, f []string, m *Model) (*Graph, error) {
 			continue
 		}
 
+		if Config.EnablePhrasalTranslations && !node.valid {
+			continue
+		}
+
+		if !Config.EnablePhrasalTranslations && !node.valid {
+			panic("unexpected invalid node")
+		}
+
 		g.Alpha(node)
 	}
 
-	var err error
-
-	if !g.nodes[0].valid {
-		err = errors.New("invalid root node")
+	if len(g.pBeta) != len(g.pAlpha) {
+		panic("beta and alpha map lengths do not match")
 	}
 
-	return g, err
+	return g, nil
 }
 
 func (g *Graph) AddNode(n *Node) {
-	if !n.valid && len(g.nodes) != 0 {
-		panic("invalid node")
-	}
-
 	g.nodes = append(g.nodes, n)
 }
 
 func (g *Graph) AddEdge(n1, n2 *Node, w *big.Float) {
-	if !n1.valid || !n2.valid {
-		panic("invalid edge")
-	}
-
 	g.edges[[2]*Node{n1, n2}] = w
 
 	if _, ok := g.pred[n2]; !ok {
@@ -105,6 +112,42 @@ func (g *Graph) AddEdge(n1, n2 *Node, w *big.Float) {
 
 	g.pred[n2] = append(g.pred[n2], n1)
 	g.succ[n1] = append(g.succ[n1], n2)
+}
+
+func (g *Graph) InvalidateUnreachableNodes() {
+	var validate func(*Node, bool)
+	validate = func(node *Node, valid bool) {
+		if node.valid && !valid {
+			node.valid = valid
+		}
+
+		if node.nType == MajorNode {
+			check := false
+
+			if len(g.pred[node]) == 0 {
+				check = true
+			}
+
+			for _, p := range g.pred[node] {
+				check = check || p.valid
+
+				if check {
+					break
+				}
+			}
+
+			valid = check
+			node.valid = valid
+		}
+
+		for _, s := range g.succ[node] {
+			validate(s, valid)
+		}
+	}
+
+	root := g.nodes[0]
+
+	validate(root, root.valid)
 }
 
 func (g *Graph) TrackNode(m map[string]map[string][]*Node, feature, key string, n *Node) {
@@ -167,7 +210,7 @@ func reachable(t *tree.Tree, l int) bool {
 	return l <= max
 }
 
-func partitionings(reordering *Node) [][]int {
+func partitioning(reordering *Node) [][]int {
 	validate := func(p, i int) bool {
 		return reachable(reordering.tree.Children[reordering.r.Reordering[i]], p)
 	}
@@ -278,11 +321,11 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 				nType: SubNode,
 			}
 
-			for _, partitioning := range partitionings(r) {
+			for _, partition := range partitioning(r) {
 				p := &Node{
 					n:     r.n,
 					r:     r.r,
-					p:     partitioning,
+					p:     partition,
 					tree:  r.tree,
 					f:     r.f,
 					k:     r.k,
@@ -292,9 +335,6 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 				}
 
 				k := r.k
-
-				nodes := make(map[*Node]struct{}) // new major nodes
-				edges := make([][2]*Node, 0)      // new p -> major edges
 
 				for i := 0; i < len(r.tree.Children); i++ {
 					c := r.tree.Children[p.r.Reordering[i]]
@@ -307,66 +347,45 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 						tree:  c,
 						f:     p.f,
 						k:     k,
-						l:     partitioning[i],
+						l:     partition[i],
 						nType: MajorNode,
 					}
 
-					k += partitioning[i]
+					k += partition[i]
 
 					sub := major.Substring()
 
 					if _, ok := g.major[c][sub]; !ok {
 						g.major[c][sub] = major
 
-						nodes[major] = struct{}{}
-
 						g.Expand(major, m, mt)
+						g.AddNode(major)
 					}
 
 					p.valid = p.valid && g.major[c][sub].valid
 
-					if !p.valid {
-						break
-					}
-
-					edges = append(edges, [2]*Node{p, g.major[c][sub]})
+					g.AddEdge(p, g.major[c][sub], big.NewFloat(1))
 				}
 
-				if p.valid {
-					for node := range nodes {
-						g.AddNode(node)
-					}
-
-					for _, edge := range edges {
-						g.AddEdge(edge[0], edge[1], big.NewFloat(1))
-					}
-				}
+				g.AddNode(p)
+				g.AddEdge(r, p, big.NewFloat(1))
 
 				r.valid = r.valid || p.valid
 				i.valid = i.valid || r.valid
 				n.valid = n.valid || i.valid
-
-				if r.valid && p.valid {
-					g.AddNode(p)
-					g.AddEdge(r, p, big.NewFloat(1))
-				}
 			}
 
-			if i.valid && r.valid {
-				g.AddNode(r)
-				g.AddEdge(i, r, m.Probability(reordering))
-				g.AddOperation(reordering, n)
-			}
+			g.AddNode(r)
+			g.AddEdge(i, r, m.Probability(reordering))
+			g.AddOperation(reordering, n)
 		}
 
-		if n.valid && i.valid {
-			g.AddNode(i)
-			g.AddEdge(n, i, m.Probability(insertion))
-			g.AddOperation(insertion, n)
-		}
+		g.AddNode(i)
+		g.AddEdge(n, i, m.Probability(insertion))
+		g.AddOperation(insertion, n)
 	}
 
-	if n.valid && len(n.tree.Children) != 0 {
+	if len(n.tree.Children) != 0 {
 		n.lambda, n.kappa = m.Lambda(eStr)
 
 		g.TrackNode(g.lambda, eStr, LambdaKey, n)
@@ -387,10 +406,14 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 
 	sum := new(big.Float)
 
-	for _, partitioning := range g.pred[n] {
+	for _, partition := range g.pred[n] {
+		if !partition.valid {
+			continue
+		}
+
 		prod := big.NewFloat(1)
 
-		reordering := g.pred[partitioning][0]
+		reordering := g.pred[partition][0]
 		insertion := g.pred[reordering][0]
 		major := g.pred[insertion][0]
 
@@ -404,6 +427,10 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 		rProb.Copy(g.edges[[2]*Node{insertion, reordering}])
 
 		for _, translation := range g.succ[insertion] {
+			if !translation.valid {
+				continue
+			}
+
 			if translation.nType == FinalNode {
 				tProb.Copy(g.edges[[2]*Node{insertion, translation}])
 				break
@@ -415,7 +442,11 @@ func (g *Graph) Alpha(n *Node) *big.Float {
 
 		prod.Mul(prod, rProb.Add(rProb, tProb))
 
-		for _, sibling := range g.succ[partitioning] {
+		for _, sibling := range g.succ[partition] {
+			if !sibling.valid {
+				continue
+			}
+
 			if sibling == n {
 				continue
 			}

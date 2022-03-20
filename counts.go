@@ -8,6 +8,10 @@ func (g *Graph) InsideWeight(n *Node, filter [3]string, lambda, kappa *big.Float
 	sumI := new(big.Float)
 
 	for _, i := range g.succ[n] {
+		if !i.valid {
+			continue
+		}
+
 		if filter[0] != "" && i.n.Key() != filter[0] {
 			continue
 		}
@@ -16,6 +20,10 @@ func (g *Graph) InsideWeight(n *Node, filter [3]string, lambda, kappa *big.Float
 		sumR := new(big.Float)
 
 		for _, rt := range g.succ[i] {
+			if !rt.valid {
+				continue
+			}
+
 			if rt.nType == SubNode {
 				if filter[1] != "" && rt.r.Key() != filter[1] {
 					continue
@@ -24,9 +32,17 @@ func (g *Graph) InsideWeight(n *Node, filter [3]string, lambda, kappa *big.Float
 				sumP := new(big.Float)
 
 				for _, p := range g.succ[rt] {
+					if !p.valid {
+						continue
+					}
+
 					prod := big.NewFloat(1)
 
 					for _, m := range g.succ[p] {
+						if !m.valid {
+							continue
+						}
+
 						prod.Mul(prod, g.Beta(m))
 					}
 
@@ -75,7 +91,15 @@ func (g *Graph) InsertionCount(feature, key string) (*big.Float, bool) {
 		return sum, ok
 	}
 
+	valid := false
+
 	for _, m := range ms {
+		if !m.valid {
+			continue
+		}
+
+		valid = true
+
 		prod := big.NewFloat(1)
 
 		prod.Mul(prod, g.pAlpha[m])
@@ -86,7 +110,7 @@ func (g *Graph) InsertionCount(feature, key string) (*big.Float, bool) {
 		sum.Add(sum, prod)
 	}
 
-	return sum, ok
+	return sum, valid
 }
 
 func (g *Graph) ReorderingCount(feature, key string) (*big.Float, bool) {
@@ -99,18 +123,26 @@ func (g *Graph) ReorderingCount(feature, key string) (*big.Float, bool) {
 		return sum, ok
 	}
 
+	valid := false
+
 	for _, m := range ms {
+		if !m.valid {
+			continue
+		}
+
+		valid = true
+
 		prod := big.NewFloat(1)
 
 		prod.Mul(prod, g.pAlpha[m])
-		prod.Mul(prod, g.InsideWeight(m, [3]string{"", key}, nil, nil))
+		prod.Mul(prod, g.InsideWeight(m, [3]string{"", key}, new(big.Float), big.NewFloat(1)))
 
 		prod.Quo(prod, g.Beta(g.nodes[0]))
 
 		sum.Add(sum, prod)
 	}
 
-	return sum, ok
+	return sum, valid
 }
 
 func (g *Graph) TranslationCount(feature, key string) (*big.Float, bool) {
@@ -123,7 +155,15 @@ func (g *Graph) TranslationCount(feature, key string) (*big.Float, bool) {
 		return sum, ok
 	}
 
+	valid := false
+
 	for _, m := range ms {
+		if !m.valid {
+			continue
+		}
+
+		valid = true
+
 		prod := big.NewFloat(1)
 
 		prod.Mul(prod, g.pAlpha[m])
@@ -134,7 +174,7 @@ func (g *Graph) TranslationCount(feature, key string) (*big.Float, bool) {
 		sum.Add(sum, prod)
 	}
 
-	return sum, ok
+	return sum, valid
 }
 
 func (g *Graph) LambdaCount(feature, key string) (*big.Float, bool) {
@@ -147,7 +187,15 @@ func (g *Graph) LambdaCount(feature, key string) (*big.Float, bool) {
 		return sum, ok
 	}
 
+	valid := false
+
 	for _, m := range ms {
+		if !m.valid {
+			continue
+		}
+
+		valid = true
+
 		prod := big.NewFloat(1)
 
 		prod.Mul(prod, g.pAlpha[m])
@@ -166,5 +214,5 @@ func (g *Graph) LambdaCount(feature, key string) (*big.Float, bool) {
 		sum.Add(sum, prod)
 	}
 
-	return sum, ok
+	return sum, valid
 }
