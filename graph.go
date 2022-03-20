@@ -144,20 +144,24 @@ func reachable(t *tree.Tree, l int) bool {
 
 	max := 0
 
-	if Config.EnableInteriorInsertions {
-		max += size - len(leaves)
-	}
-
-	if Config.EnableTerminalInsertions {
-		max += len(leaves)
-	}
-
 	if !Config.EnablePhrasalTranslations {
+		if Config.EnableInteriorInsertions {
+			max += size - len(leaves)
+		}
+
+		if Config.EnableTerminalInsertions {
+			max += len(leaves)
+		}
+
 		max += len(leaves)
-	} else if len(t.Children) == 0 {
-		max += len(leaves)
-	} else {
-		max += len(leaves) * Config.PhraseLengthLimit // assumes each leaf has a preceding POS tag
+	}
+
+	if Config.EnablePhrasalTranslations {
+		if Config.EnableInteriorInsertions {
+			max += size - (2 * len(leaves)) // no insertions at POS tags
+		}
+
+		max += len(leaves) * Config.PhraseLengthLimit // phrasal translation at POS tags
 	}
 
 	return l <= max
