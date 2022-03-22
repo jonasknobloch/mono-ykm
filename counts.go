@@ -135,7 +135,7 @@ func (g *Graph) ReorderingCount(feature, key string) (*big.Float, bool) {
 		prod := big.NewFloat(1)
 
 		prod.Mul(prod, g.pAlpha[m])
-		prod.Mul(prod, g.InsideWeight(m, [3]string{"", key}, new(big.Float), big.NewFloat(1)))
+		prod.Mul(prod, g.InsideWeight(m, [3]string{"", key}, nil, nil))
 
 		prod.Quo(prod, g.Beta(g.nodes[0]))
 
