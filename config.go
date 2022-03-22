@@ -8,29 +8,27 @@ import (
 )
 
 var Config = struct {
-	ReplaceSparseTokens            bool
-	SparseTokenThreshold           int
-	EnableInteriorInsertions       bool
-	EnableTerminalInsertions       bool
-	EnablePhrasalTranslations      bool
-	EnableInterior1ToNTranslations bool
-	EnableInteriorNTo1Translations bool
-	EnableFertilityDecomposition   bool
-	PhraseLengthLimit              int
-	PhraseFrequencyCutoff          int
-	TrainingDataPath               string
-	TrainingIterationLimit         int
-	TrainingSampleLimit            int
-	TrainingComplexityLimit        int
-	ConcurrentSampleEvaluations    int
-	ParaphraseThreshold            float64
-	InitModelPath                  string
-	InitModelIteration             int
-	PrintCorpusLikelihood          bool
-	ExportGraphs                   bool
-	ExportModel                    bool
-	GraphExportDirectory           string
-	ModelExportDirectory           string
+	ReplaceSparseTokens          bool
+	SparseTokenThreshold         int
+	EnableInteriorInsertions     bool
+	EnableTerminalInsertions     bool
+	EnablePhrasalTranslations    bool
+	EnableFertilityDecomposition bool
+	PhraseLengthLimit            int
+	PhraseFrequencyCutoff        int
+	TrainingDataPath             string
+	TrainingIterationLimit       int
+	TrainingSampleLimit          int
+	TrainingComplexityLimit      int
+	ConcurrentSampleEvaluations  int
+	ParaphraseThreshold          float64
+	InitModelPath                string
+	InitModelIteration           int
+	PrintCorpusLikelihood        bool
+	ExportGraphs                 bool
+	ExportModel                  bool
+	GraphExportDirectory         string
+	ModelExportDirectory         string
 }{}
 
 func init() {
@@ -43,8 +41,6 @@ func init() {
 	Config.EnableTerminalInsertions, _, _ = parseEnvBool("ENABLE_TERMINAL_INSERTIONS", true)
 
 	Config.EnablePhrasalTranslations, _, _ = parseEnvBool("ENABLE_PHRASAL_TRANSLATIONS", true)
-	Config.EnableInterior1ToNTranslations, _, _ = parseEnvBool("ENABLE_INTERIOR_1_TO_N_TRANSLATIONS", true)
-	Config.EnableInteriorNTo1Translations, _, _ = parseEnvBool("ENABLE_INTERIOR_N_TO_1_TRANSLATIONS", true)
 	Config.EnableFertilityDecomposition, _, _ = parseEnvBool("ENABLE_FERTILITY_DECOMPOSITION", true)
 	Config.PhraseLengthLimit, _, _ = parseEnvInt("PHRASE_LENGTH_LIMIT", 0)
 	Config.PhraseFrequencyCutoff, _, _ = parseEnvInt("PHRASE_FREQUENCY_CUTOFF", 1)

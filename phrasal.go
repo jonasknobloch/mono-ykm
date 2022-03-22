@@ -25,14 +25,6 @@ func countPhrasalPairs() map[string]map[string]int {
 			return false
 		}
 
-		if len(es) < 2 && !Config.EnableInterior1ToNTranslations {
-			return false
-		}
-
-		if len(et) < 2 && !Config.EnableInteriorNTo1Translations {
-			return false
-		}
-
 		if len(es) > Config.PhraseLengthLimit || len(et) > Config.PhraseLengthLimit {
 			return false
 		}
