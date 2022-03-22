@@ -201,34 +201,9 @@ func (g *Graph) AddOperation(op Operation, n *Node) {
 	g.TrackNode(m, feature, key, n)
 }
 
-func reachable(t *tree.Tree, l int) bool {
-	size := t.Size()
-	leaves := t.Leaves()
-
-	max := 0
-
-	if Config.EnableInteriorInsertions {
-		max += size - len(leaves)
-	}
-
-	if !Config.EnablePhrasalTranslations {
-		if Config.EnableTerminalInsertions {
-			max += len(leaves)
-		}
-
-		max += len(leaves)
-	}
-
-	if Config.EnablePhrasalTranslations {
-		max += len(leaves) * Config.PhraseLengthLimit // phrasal translation at POS tags
-	}
-
-	return l <= max
-}
-
-func partitioning(reordering *Node) [][]int {
+func partitioning(reordering *Node, mt *MetaTree) [][]int {
 	validate := func(p, i int) bool {
-		return reachable(reordering.tree.Children[reordering.r.Reordering[i]], p)
+		return p <= mt.MaxFertility(reordering.tree.Children[reordering.r.Reordering[i]])
 	}
 
 	var p func(n, k int, r [][]int) [][]int
@@ -271,7 +246,7 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 
 	eStr := strings.Join(e, " ")
 
-	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.Feature(n.tree, InsertionFeature)) {
+	for _, op := range Insertions(n.tree, n.f[n.k:n.k+n.l], mt.MaxFertility(n.tree), mt.Feature(n.tree, InsertionFeature)) {
 		insertion := op.(Insertion)
 
 		k := n.k
@@ -337,7 +312,7 @@ func (g *Graph) Expand(n *Node, m *Model, mt *MetaTree) {
 				nType: SubNode,
 			}
 
-			for _, partition := range partitioning(r) {
+			for _, partition := range partitioning(r, mt) {
 				p := &Node{
 					n:     r.n,
 					r:     r.r,

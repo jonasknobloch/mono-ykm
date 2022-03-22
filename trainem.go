@@ -47,6 +47,7 @@ func initSample(sample *Sample) (*MetaTree, []string, error) {
 	mt := NewMetaTree(t)
 
 	mt.CollectFeatures()
+	mt.ComputeMaxFertility()
 
 	e := strings.Split(sample.Sentence, " ")
 
@@ -54,7 +55,7 @@ func initSample(sample *Sample) (*MetaTree, []string, error) {
 		replaceSparseTokens(e, tokenOccurrences)
 	}
 
-	if !reachable(mt.Tree, len(e)) {
+	if len(e) > mt.MaxFertility(mt.Tree) {
 		return nil, nil, errors.New("target sentence unreachable")
 	}
 

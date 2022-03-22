@@ -67,20 +67,22 @@ func (i Insertion) UnknownKey() string {
 	return i.key[1]
 }
 
-func Insertions(t *tree.Tree, d []string, f [2]string) []Operation {
+func Insertions(t *tree.Tree, d []string, maxF int, f [2]string) []Operation {
 	ops := make([]Operation, 0)
 
-	l := len(d)
-
 	if Config.EnableInteriorInsertions && len(t.Children) != 0 {
-		l += 1
+		maxF -= 1
 	}
 
 	if Config.EnableTerminalInsertions && len(t.Children) == 0 {
-		l += 1
+		maxF -= 1
 	}
 
-	if len(d) == 0 || reachable(t, l) {
+	if maxF < 0 {
+		panic("negative maximal fertility")
+	}
+
+	if len(d) <= maxF {
 		ops = append(ops, NewInsertion(None, "", f))
 	}
 
