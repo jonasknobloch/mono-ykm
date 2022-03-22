@@ -63,7 +63,7 @@ func NewGraph(mt *MetaTree, f []string, m *Model) (*Graph, error) {
 	}
 
 	if Config.EnablePhrasalTranslations {
-		g.InvalidateUnreachableNodes()
+		g.InvalidateUnreachableNodes(mt.Tree)
 	}
 
 	g.Beta(n)
@@ -114,7 +114,7 @@ func (g *Graph) AddEdge(n1, n2 *Node, w *big.Float) {
 	g.succ[n1] = append(g.succ[n1], n2)
 }
 
-func (g *Graph) InvalidateUnreachableNodes() {
+func (g *Graph) InvalidateUnreachableNodes(t *tree.Tree) {
 	var validate func(*Node, bool)
 	validate = func(node *Node, valid bool) {
 		if node.valid && !valid {
@@ -145,9 +145,29 @@ func (g *Graph) InvalidateUnreachableNodes() {
 		}
 	}
 
-	root := g.nodes[0]
+	var walk func(*tree.Tree, func(*tree.Tree) bool)
+	walk = func(t *tree.Tree, cb func(st *tree.Tree) bool) {
+		if !cb(t) {
+			return
+		}
 
-	validate(root, root.valid)
+		for _, c := range t.Children {
+			walk(c, cb)
+		}
+	}
+
+	walk(t, func(st *tree.Tree) bool {
+		valid := true
+
+		for _, node := range g.major[st] {
+			if !node.valid {
+				valid = node.valid
+				validate(node, node.valid)
+			}
+		}
+
+		return valid
+	})
 }
 
 func (g *Graph) TrackNode(m map[string]map[string][]*Node, feature, key string, n *Node) {
