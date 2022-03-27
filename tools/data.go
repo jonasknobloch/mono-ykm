@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/jonasknobloch/jinn/pkg/corenlp"
-	"github.com/jonasknobloch/jinn/pkg/msrpc"
-	"github.com/jonasknobloch/jinn/pkg/paws"
-	"io"
+	"github.com/jonasknobloch/jinn/pkg/data"
+	"github.com/jonasknobloch/jinn/pkg/data/msrpc"
+	"github.com/jonasknobloch/jinn/pkg/data/paws"
 	"log"
 	"net/url"
 	"os"
@@ -18,6 +18,13 @@ import (
 
 var parser *corenlp.Client
 var tokenizer *corenlp.Client
+
+type qqpSample struct {
+	judgement bool
+	question1 string
+	question2 string
+	pairID    int
+}
 
 func init() {
 	u, err := url.Parse("http://localhost:9000")
@@ -80,15 +87,15 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if err := MSRPC("msrpc/msr_paraphrase_train.txt", w); err != nil {
+	if err := MSRPC("data/msrpc/msr_paraphrase_train.txt", w); err != nil {
 		log.Fatalln(err)
 	}
 
-	if err := PAWS("paws/train.tsv", w); err != nil {
+	if err := PAWS("data/paws/train.tsv", w); err != nil {
 		log.Fatalln(err)
 	}
 
-	if err := QQP("qqp/quora_duplicate_questions.tsv", w); err != nil {
+	if err := QQP("data/qqp_split/train.tsv", w); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -138,55 +145,72 @@ func tokenize(s string) (string, error) {
 	return sb.String(), nil
 }
 
-func MSRPC(name string, w *csv.Writer) error {
-	i, err := msrpc.NewIterator(name)
+func add(id, string1, string2 string, label bool, w *csv.Writer) error {
+	t, err := parse(string1)
 
 	if err != nil {
 		return err
 	}
 
-	add := func(id1, id2 int, string1, string2 string, quality bool) error {
-		t, err := parse(string1)
+	var l string
 
-		if err != nil {
-			return err
-		}
-
-		s, err := tokenize(string2)
-
-		if err != nil {
-			return err
-		}
-
-		var l string
-
-		if quality {
-			l = "1"
-		} else {
-			l = "0"
-		}
-
-		id := strings.Join([]string{"msrpc", strconv.Itoa(id1), strconv.Itoa(id2)}, "_")
-
-		if err := w.Write([]string{id, t, s, l}); err != nil {
-			return err
-		}
-
-		return nil
+	if label {
+		l = "1"
+	} else {
+		l = "0"
 	}
 
+	if err := w.Write([]string{id, t, string2, l}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func MSRPC(name string, w *csv.Writer) error {
+	file, err := os.Open(name)
+
+	if err != nil {
+		return err
+	}
+
+	reader := csv.NewReader(file)
+
+	reader.Comma = '\t'
+	reader.LazyQuotes = true
+
+	i := data.NewIterator(reader, msrpc.NewSample)
+
+	i.Skip()
+
 	for i.Next() {
-		s := i.Sample()
+		s := i.Sample().(*msrpc.Sample)
 
 		if !s.Quality {
 			continue
 		}
 
-		if err := add(s.ID1, s.ID2, s.String1, s.String2, s.Quality); err != nil {
+		id1 := strings.Join([]string{"msrpc", strconv.Itoa(s.ID1), strconv.Itoa(s.ID2)}, "_")
+		id2 := strings.Join([]string{"msrpc", strconv.Itoa(s.ID2), strconv.Itoa(s.ID1)}, "_")
+
+		var string1 string
+		var string2 string
+
+		var err error
+
+		if string1, err = tokenize(s.String1); err != nil {
 			return err
 		}
 
-		if err := add(s.ID2, s.ID1, s.String2, s.String1, s.Quality); err != nil {
+		if string2, err = tokenize(s.String2); err != nil {
+			return err
+		}
+
+		if err := add(id1, string1, string2, s.Quality, w); err != nil {
+			return err
+		}
+
+		if err := add(id2, string2, string1, s.Quality, w); err != nil {
 			return err
 		}
 	}
@@ -195,36 +219,22 @@ func MSRPC(name string, w *csv.Writer) error {
 }
 
 func PAWS(name string, w *csv.Writer) error {
-	i, err := paws.NewIterator(name)
+	file, err := os.Open(name)
 
 	if err != nil {
 		return err
 	}
 
-	add := func(id, sentence1, sentence2 string, quality bool) error {
-		t, err := parse(sentence1)
+	reader := csv.NewReader(file)
 
-		if err != nil {
-			return err
-		}
+	reader.Comma = '\t'
 
-		var l string
+	i := data.NewIterator(reader, paws.NewSample)
 
-		if quality {
-			l = "1"
-		} else {
-			l = "0"
-		}
-
-		if err := w.Write([]string{id, t, sentence2, l}); err != nil {
-			return err
-		}
-
-		return nil
-	}
+	i.Skip()
 
 	for i.Next() {
-		s := i.Sample()
+		s := i.Sample().(*paws.Sample)
 
 		if !s.Label {
 			continue
@@ -233,11 +243,11 @@ func PAWS(name string, w *csv.Writer) error {
 		id1 := strings.Join([]string{"paws", strconv.Itoa(s.ID), "1"}, "_")
 		id2 := strings.Join([]string{"paws", strconv.Itoa(s.ID), "2"}, "_")
 
-		if err := add(id1, s.Sentence1, s.Sentence2, s.Label); err != nil {
+		if err := add(id1, s.Sentence1, s.Sentence2, s.Label, w); err != nil {
 			return err
 		}
 
-		if err := add(id2, s.Sentence2, s.Sentence1, s.Label); err != nil {
+		if err := add(id2, s.Sentence2, s.Sentence1, s.Label, w); err != nil {
 			return err
 		}
 	}
@@ -246,72 +256,58 @@ func PAWS(name string, w *csv.Writer) error {
 }
 
 func QQP(name string, w *csv.Writer) error {
-	f, err := os.Open(name)
+	file, err := os.Open(name)
 
 	if err != nil {
 		return err
 	}
 
-	r := csv.NewReader(f)
+	reader := csv.NewReader(file)
 
-	r.Comma = '\t'
+	reader.Comma = '\t'
 
-	record, err := r.Read()
+	factory := func(record []string) (interface{}, error) {
+		if len(record) != 4 {
+			return nil, errors.New("unexpected record length")
+		}
 
-	if err != nil {
-		return err
+		sample := &qqpSample{}
+
+		if record[0] != "0" && record[0] != "1" {
+			return nil, errors.New("unexpected judgement")
+		}
+
+		sample.judgement = record[0] == "1"
+
+		sample.question1 = record[1]
+		sample.question2 = record[2]
+
+		if i, err := strconv.Atoi(record[3]); err != nil {
+			return nil, err
+		} else {
+			sample.pairID = i
+		}
+
+		return sample, nil
 	}
 
-	var header [6]string
-	copy(header[:], record[0:6])
+	i := data.NewIterator(reader, factory)
 
-	if header != [6]string{"id", "qid1", "qid2", "question1", "question2", "is_duplicate"} {
-		return errors.New("unexpected header row")
-	}
+	for i.Next() {
+		s := i.Sample().(*qqpSample)
 
-	add := func(id, question1, question2, duplicate string) error {
-		t, err := parse(question1)
-
-		if err != nil {
-			return err
-		}
-
-		s, err := tokenize(question2)
-
-		if err != nil {
-			return err
-		}
-
-		if err := w.Write([]string{id, t, s, duplicate}); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	for {
-		record, err := r.Read()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return err
-		}
-
-		if record[5] != "1" {
+		if !s.judgement {
 			continue
 		}
 
-		id1 := strings.Join([]string{"qqp", record[0], record[1], record[2]}, "_")
-		id2 := strings.Join([]string{"qqp", record[0], record[2], record[1]}, "_")
+		id1 := strings.Join([]string{"qqp", strconv.Itoa(s.pairID), "1"}, "_")
+		id2 := strings.Join([]string{"qqp", strconv.Itoa(s.pairID), "2"}, "_")
 
-		if err := add(id1, record[3], record[4], record[5]); err != nil {
+		if err := add(id1, s.question1, s.question2, s.judgement, w); err != nil {
 			return err
 		}
 
-		if err := add(id2, record[4], record[3], record[5]); err != nil {
+		if err := add(id2, s.question2, s.question1, s.judgement, w); err != nil {
 			return err
 		}
 	}

@@ -17,6 +17,8 @@ github.com/jonasknobloch/jinn v0.4.0 h1:dK8c1MBlTS/CC+gD1kpoGH8XaqvUhpJXsaiGtusF
 github.com/jonasknobloch/jinn v0.4.0/go.mod h1:nYFGYVe+k/ZSs9fmkPMJma2g6myxU8Oh+A7+AcoKm2k=
 github.com/jonasknobloch/jinn v0.5.0 h1:GTHvWWxLKGiPPp5ivbA8zeZFuxVnuey7uozR7D8ggNs=
 github.com/jonasknobloch/jinn v0.5.0/go.mod h1:nYFGYVe+k/ZSs9fmkPMJma2g6myxU8Oh+A7+AcoKm2k=
+github.com/jonasknobloch/jinn v0.6.0 h1:fzZi/JGt1xksL4mwNSOL41vH5/PjmK7NwNjzRVj9uVs=
+github.com/jonasknobloch/jinn v0.6.0/go.mod h1:nYFGYVe+k/ZSs9fmkPMJma2g6myxU8Oh+A7+AcoKm2k=
 github.com/jung-kurt/gofpdf v1.0.0/go.mod h1:7Id9E/uU8ce6rXgefFLlgrJj/GYY22cpxn+r32jIOes=
 github.com/jung-kurt/gofpdf v1.0.3-0.20190309125859-24315acbbda5/go.mod h1:7Id9E/uU8ce6rXgefFLlgrJj/GYY22cpxn+r32jIOes=
 github.com/phpdave11/gofpdf v1.4.2/go.mod h1:zpO6xFn9yxo3YLyMvW8HcKWVdbNqgIfOOp2dXMnm1mY=
