@@ -304,11 +304,15 @@ func QQP(name string, w *csv.Writer) error {
 		id2 := strings.Join([]string{"qqp", strconv.Itoa(s.pairID), "2"}, "_")
 
 		if err := add(id1, s.question1, s.question2, s.judgement, w); err != nil {
-			return err
+			log.Printf("error adding %s: %v\n", id1, err)
+
+			continue
 		}
 
 		if err := add(id2, s.question2, s.question1, s.judgement, w); err != nil {
-			return err
+			log.Printf("error adding %s: %v\n", id2, err)
+
+			continue
 		}
 	}
 
