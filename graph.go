@@ -115,58 +115,35 @@ func (g *Graph) AddEdge(n1, n2 *Node, w *big.Float) {
 }
 
 func (g *Graph) InvalidateUnreachableNodes(t *tree.Tree) {
-	var validate func(*Node, bool)
-	validate = func(node *Node, valid bool) {
-		if node.valid && !valid {
-			node.valid = valid
-		}
+	var invalidate func(*Node)
+	invalidate = func(node *Node) {
+		node.valid = false
 
-		if node.nType == MajorNode {
-			check := false
-
-			if len(g.pred[node]) == 0 {
-				check = true
+		for _, s := range g.succ[node] {
+			if s.nType == MajorNode {
+				return
 			}
 
-			for _, p := range g.pred[node] {
-				check = check || p.valid
+			invalidate(s)
+		}
+	}
 
-				if check {
+	t.Walk(func(st *tree.Tree) {
+		for _, node := range g.major[st] {
+			valid := false
+
+			for _, p := range g.pred[node] {
+				valid = valid || p.valid
+
+				if valid {
 					break
 				}
 			}
 
-			valid = check
-			node.valid = valid
-		}
-
-		for _, s := range g.succ[node] {
-			validate(s, valid)
-		}
-	}
-
-	var walk func(*tree.Tree, func(*tree.Tree) bool)
-	walk = func(t *tree.Tree, cb func(st *tree.Tree) bool) {
-		if !cb(t) {
-			return
-		}
-
-		for _, c := range t.Children {
-			walk(c, cb)
-		}
-	}
-
-	walk(t, func(st *tree.Tree) bool {
-		valid := true
-
-		for _, node := range g.major[st] {
-			if !node.valid {
-				valid = node.valid
-				validate(node, node.valid)
+			if !valid {
+				invalidate(node)
 			}
 		}
-
-		return valid
 	})
 }
 
