@@ -105,7 +105,7 @@ func (m *Model) Lambda(feature string) (*big.Float, *big.Float) {
 	}
 
 	if _, ok := m.l[feature]; !ok {
-		if *execMode == ModeTrain {
+		if !Config.EnablePhrasalTranslations && *execMode == ModeTrain {
 			panic("unknown feature")
 		}
 
