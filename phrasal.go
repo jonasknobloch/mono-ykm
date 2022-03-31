@@ -20,12 +20,24 @@ func countPhrasalPairs() map[string]map[string]int {
 
 	pairs := make(map[string]map[string]int)
 
+	abs := func(a, b int) int {
+		if a > b {
+			return a - b
+		}
+
+		return b - a
+	}
+
 	valid := func(es, et []string) bool {
 		if len(es) < 2 && len(et) < 2 {
 			return false
 		}
 
 		if len(es) > Config.PhraseLengthLimit || len(et) > Config.PhraseLengthLimit {
+			return false
+		}
+
+		if abs(len(es), len(et)) > Config.MaxPhraseLengthDifference {
 			return false
 		}
 

@@ -56,6 +56,14 @@ func (mt *MetaTree) CollectFeatures() {
 }
 
 func (mt *MetaTree) ComputeMaxFertility() {
+	min := func(a, b int) int {
+		if a < b {
+			return a
+		}
+
+		return b
+	}
+
 	var walk func(st *tree.Tree) int
 	walk = func(st *tree.Tree) int {
 		phrasal := 0
@@ -75,7 +83,7 @@ func (mt *MetaTree) ComputeMaxFertility() {
 		}
 
 		if Config.EnablePhrasalTranslations && len(st.Children) != 0 {
-			phrasal += Config.PhraseLengthLimit
+			phrasal += min(len(st.Children)+Config.MaxPhraseLengthDifference, Config.PhraseLengthLimit)
 		}
 
 		for _, c := range st.Children {

@@ -15,6 +15,7 @@ var Config = struct {
 	EnablePhrasalTranslations    bool
 	EnableFertilityDecomposition bool
 	PhraseLengthLimit            int
+	MaxPhraseLengthDifference    int
 	PhraseFrequencyCutoff        int
 	TrainingDataPath             string
 	TrainingIterationLimit       int
@@ -43,6 +44,7 @@ func init() {
 	Config.EnablePhrasalTranslations, _, _ = parseEnvBool("ENABLE_PHRASAL_TRANSLATIONS", true)
 	Config.EnableFertilityDecomposition, _, _ = parseEnvBool("ENABLE_FERTILITY_DECOMPOSITION", true)
 	Config.PhraseLengthLimit, _, _ = parseEnvInt("PHRASE_LENGTH_LIMIT", 0)
+	Config.MaxPhraseLengthDifference, _, _ = parseEnvInt("MAX_PHRASE_LENGTH_DIFFERENCE", 0)
 	Config.PhraseFrequencyCutoff, _, _ = parseEnvInt("PHRASE_FREQUENCY_CUTOFF", 1)
 
 	Config.TrainingDataPath, _ = parseEnvString("TRAINING_DATA_PATH", "")
